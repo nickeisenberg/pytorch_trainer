@@ -72,7 +72,7 @@ class TrainModule(nn.Module):
         self.device = "cuda"
 
         self.local_rank = int(os.environ["LOCAL_RANK"])
-        self.global_rank = os.environ["GLOBAL_RANK"]
+        self.global_rank = os.environ["RANK"]
 
         self.model = MnistClassifier()
         self.model.to(self.local_rank)

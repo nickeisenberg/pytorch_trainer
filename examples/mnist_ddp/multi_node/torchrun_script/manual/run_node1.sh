@@ -5,4 +5,4 @@ torchrun \
     --rdzv_id=456 \
     --rdzc_backend=c10d \
     --rdzv_endpoint=<host>:<port> \
-    ../../main.py
+    /home/nick/GitRepos/torchface/examples/mnist_ddp/multi_node/main.py

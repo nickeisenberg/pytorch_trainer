@@ -1,7 +1,13 @@
+import os
+
 import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader, Subset
+from torch.utils.data.distributed import DistributedSampler
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.distributed import init_process_group, destroy_process_group
+
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 
@@ -61,23 +67,19 @@ class TrainModule(nn.Module):
 
         super().__init__()
         
-        self.device = "cuda"
-
         self.model = MnistClassifier()
-        self.model = self.model.to(self.device)
+
+        self.local_rank = os.environ["LOCAL_RANK"]
+        self.global_rank = os.environ["GLOBAL_RANK"]
 
         self.loss_fn = Loss()
         self.optimizer = Adam(self.model.parameters(), lr=.0001)
-
-        self.unpacker = lambda data, device: (
-            data[0].to(device), data[1].to(device)
-        )
         
         self.accuracy = Accuracy()
         self.conf_mat = ConfusionMatrix([*range(10)], "./examples/mnist/metrics")
         self.logger = CSVLogger("./examples/mnist/loss_logs")
         self.save_best = SaveBestCheckoint("./examples/mnist/state_dicts", "total_loss")
-        self.progress_bar_updater = ProgressBarUpdater()
+        self.pbar_updater = ProgressBarUpdater()
 
     def callbacks(self):
         return [
@@ -93,11 +95,11 @@ class TrainModule(nn.Module):
         return self.model(x)
 
 
-    def train_batch_pass(self, loader_data):
+    def train_batch_pass(self, *unpacked_loader_data):
         if not self.model.training:
             self.model.train()
 
-        inputs, targets = self.unpacker(loader_data, self.device) 
+        inputs, targets = unpacked_loader_data 
         
         self.optimizer.zero_grad()
         outputs = self.model(inputs)
@@ -115,11 +117,11 @@ class TrainModule(nn.Module):
         self.logger.log(history)
 
 
-    def validation_batch_pass(self, loader_data):
+    def validation_batch_pass(self, *unpacked_loader_data):
         if self.model.training:
             self.model.eval()
 
-        inputs, targets = self.unpacker(loader_data, self.device)
+        inputs, targets = unpacked_loader_data
 
         with torch.no_grad():
             outputs: torch.Tensor = self.model(inputs)
@@ -136,23 +138,25 @@ class TrainModule(nn.Module):
         self.logger.log(history)
 
 
-if __name__ == "__main__":
-    train_module = TrainModule()
-    
-    mnist = MNIST(
-        "/mnt/c/Users/EISENBNT/Datasets/MNIST", 
-        train=True,
-        transform=ToTensor(),
-        download=True
-    )
-    tloader = DataLoader(Subset(mnist, range(50000)), 64)
-    vloader = DataLoader(Subset(mnist, range(50000, 60000)), 64)
-    
-    
-    trainer = Trainer(train_module)
-    
-    trainer.fit(
-        train_loader=tloader,
-        num_epochs=2,
-        val_loader=vloader
-    )
+mnist = MNIST(
+    "/mnt/c/Users/EISENBNT/Datasets/MNIST", 
+    train=True,
+    transform=ToTensor(),
+    download=True
+)
+tloader = DataLoader(Subset(mnist, range(50000)), 64)
+vloader = DataLoader(Subset(mnist, range(50000, 60000)), 64)
+unpacker = lambda data, device: (data[0].to(device), data[1].to(device))
+
+
+train_module = TrainModule()
+
+trainer = Trainer(train_module)
+
+trainer.fit(
+    train_loader=tloader,
+    num_epochs=2,
+    device="cuda",
+    unpacker=unpacker,
+    val_loader=vloader
+)

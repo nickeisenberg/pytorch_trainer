@@ -1,6 +1,5 @@
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from typing import Callable
 from tqdm import tqdm
 
 
@@ -15,8 +14,6 @@ class Trainer:
     def fit(self, 
             train_loader: DataLoader,
             num_epochs: int,
-            device: str | int,
-            unpacker: Callable,
             val_loader: DataLoader | None = None):
 
         self.call("before_all_epochs")
@@ -28,9 +25,7 @@ class Trainer:
             self.pbar = tqdm(train_loader, leave=True)
 
             self.call(f"before_{self.which_pass}_epoch_pass")
-            self.epoch_pass(loader=self.pbar, 
-                            device=device, 
-                            unpacker=unpacker)
+            self.epoch_pass(loader=self.pbar)
             self.call(f"after_{self.which_pass}_epoch_pass")
 
             if val_loader is not None:
@@ -38,25 +33,18 @@ class Trainer:
                 self.pbar = tqdm(val_loader, leave=True)
 
                 self.call(f"before_{self.which_pass}_epoch_pass")
-                self.epoch_pass(loader=self.pbar,
-                                device=device,
-                                unpacker=unpacker)
+                self.epoch_pass(loader=self.pbar)
                 self.call(f"after_{self.which_pass}_epoch_pass")
 
         self.call("after_all_epochs")
 
 
-    def epoch_pass(self, 
-                   loader: tqdm, 
-                   device: str | int, 
-                   unpacker: Callable):
+    def epoch_pass(self, loader: tqdm):
 
         batch_pass = getattr(self.train_module, f"{self.which_pass}_batch_pass")
         for batch_idx, data in enumerate(loader):
-            data = unpacker(data, device)
-
             self.call(f"before_{self.which_pass}_batch_pass")
-            batch_pass(*data)
+            batch_pass(data)
             self.call(f"after_{self.which_pass}_batch_pass")
 
 
@@ -65,6 +53,3 @@ class Trainer:
             if hasattr(callback, where_at):
                 method = getattr(callback, where_at)
                 method(self)
-
-
-

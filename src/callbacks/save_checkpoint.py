@@ -1,6 +1,7 @@
 import os
 from torch import save
 from torch.nn import DataParallel
+from torch.nn.parallel import DistributedDataParallel
 
 from ..trainer.trainer import Trainer
 
@@ -82,6 +83,10 @@ class SaveBestCheckoint(Callback):
         )
     
         if isinstance(model, DataParallel):
+            checkpoint["MODEL_STATE"] = model.module.state_dict()
+            checkpoint["OPTIMIZER_STATE"] = optimizer.state_dict()
+            checkpoint["EPOCHS_RUN"] = trainer.current_epoch 
+        elif isinstance(model, DistributedDataParallel):
             checkpoint["MODEL_STATE"] = model.module.state_dict()
             checkpoint["OPTIMIZER_STATE"] = optimizer.state_dict()
             checkpoint["EPOCHS_RUN"] = trainer.current_epoch 

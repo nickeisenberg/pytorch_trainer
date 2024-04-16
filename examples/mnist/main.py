@@ -148,7 +148,6 @@ if __name__ == "__main__":
     tloader = DataLoader(Subset(mnist, range(50000)), 64)
     vloader = DataLoader(Subset(mnist, range(50000, 60000)), 64)
     
-    
     trainer = Trainer(train_module)
     
     trainer.fit(

@@ -72,6 +72,7 @@ class TrainModule(nn.Module):
         self.device = "cuda"
 
         self.local_rank = int(os.environ["LOCAL_RANK"])
+        self.global_rank = os.environ["GLOBAL_RANK"]
 
         self.model = MnistClassifier()
         self.model.to(self.local_rank)
@@ -127,7 +128,7 @@ class TrainModule(nn.Module):
         targets = targets.detach()
         predictions = torch.argmax(outputs, 1).detach()
         
-        if self.local_rank == 0:
+        if self.global_rank == 0 and int(self.local_rank) == 0:
             self.accuracy.log(predictions, targets)
             self.conf_mat.log(predictions, targets)
             history["accuracy"] = self.accuracy.accuracy
@@ -148,7 +149,7 @@ class TrainModule(nn.Module):
         targets = targets.detach()
         predictions = torch.argmax(outputs, 1).detach()
 
-        if self.local_rank == 0:
+        if self.global_rank == 0 and self.local_rank == 0:
             self.accuracy.log(predictions, targets)
             self.conf_mat.log(predictions, targets)
             history["accuracy"] = self.accuracy.accuracy
@@ -157,7 +158,7 @@ class TrainModule(nn.Module):
 
 def format_loaders():
     mnist = MNIST(
-        "/mnt/c/Users/EISENBNT/Datasets/MNIST", 
+        "/home/nick/Datasets/MNIST", 
         train=True,
         transform=ToTensor(),
         download=True

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.2.2", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trfc"
+version = "0.0.0"
+description = ""
+authors = [{name = "Nick Eisenberg"}]
+readme = "README.md"
+requires-python = ">=3.10.0"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]

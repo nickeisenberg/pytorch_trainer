@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 
-from src.trainer.trainer import Trainer
-from src.callbacks import (
+from trfc.trainer import Trainer
+from trfc.callbacks import (
     Accuracy,
     CSVLogger,
     SaveBestCheckoint,

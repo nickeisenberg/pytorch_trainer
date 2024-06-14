@@ -4,8 +4,8 @@ from tqdm import tqdm
 
 
 class Trainer:
-    def __init__(self, train_module: nn.Module):
-        self.train_module = train_module 
+    def __init__(self, trainer_module: nn.Module):
+        self.trainer_module = trainer_module 
         
         self.current_epoch = 0 
         self.which_pass = "N/A" 
@@ -41,7 +41,7 @@ class Trainer:
 
     def epoch_pass(self, loader: tqdm):
 
-        batch_pass = getattr(self.train_module, f"{self.which_pass}_batch_pass")
+        batch_pass = getattr(self.trainer_module, f"{self.which_pass}_batch_pass")
         for batch_idx, data in enumerate(loader):
             self.call(f"before_{self.which_pass}_batch_pass")
             batch_pass(data)
@@ -49,7 +49,13 @@ class Trainer:
 
 
     def call(self, where_at):
-        for callback in self.train_module.callbacks():
+        for callback in self.trainer_module.callbacks():
             if hasattr(callback, where_at):
                 method = getattr(callback, where_at)
                 method(self)
+
+
+    def call2(self, where_at):
+        for callback in self.trainer_module.callbacks():
+            if callback._callbacks[where_at] is not None:
+                callback._callbacks[where_at](self)

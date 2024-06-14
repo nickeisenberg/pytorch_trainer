@@ -4,9 +4,9 @@ from .base import Callback
 
 class ProgressBarUpdater(Callback):
     def before_all_epochs(self, trainer: Trainer, *args, **kwargs):
-        assert hasattr(trainer, "train_module")
-        assert hasattr(trainer.train_module, "logger")
-        assert hasattr(trainer.train_module.logger, "_avg_epoch_history")
+        assert hasattr(trainer, "trainer_module")
+        assert hasattr(trainer.trainer_module, "logger")
+        assert hasattr(trainer.trainer_module.logger, "_avg_epoch_history")
 
         
     def before_train_epoch_pass(self, trainer: Trainer, *args, **kwargs):
@@ -19,7 +19,7 @@ class ProgressBarUpdater(Callback):
             None, 
             True,
             EPOCH=trainer.current_epoch,
-            **trainer.train_module.logger._avg_epoch_history
+            **trainer.trainer_module.logger._avg_epoch_history
         )
 
 
@@ -33,5 +33,5 @@ class ProgressBarUpdater(Callback):
             None, 
             True,
             EPOCH=trainer.current_epoch,
-            **trainer.train_module.logger._avg_epoch_history
+            **trainer.trainer_module.logger._avg_epoch_history
         )

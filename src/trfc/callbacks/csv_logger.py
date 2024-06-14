@@ -17,8 +17,8 @@ class CSVLogger(Callback):
 
 
     def before_all_epochs(self, trainer: Trainer, *args, **kwargs):
-        assert hasattr(trainer, "train_module")
-        assert hasattr(trainer.train_module, "logger")
+        assert hasattr(trainer, "trainer_module")
+        assert hasattr(trainer.trainer_module, "logger")
 
 
     def after_train_epoch_pass(self, trainer: Trainer, *args, **kwargs):

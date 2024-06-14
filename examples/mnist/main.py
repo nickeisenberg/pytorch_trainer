@@ -56,7 +56,7 @@ class Loss(nn.Module):
         return loss, history
 
 
-class TrainModule(nn.Module):
+class TrainerModule(nn.Module):
     def __init__(self):
 
         super().__init__()
@@ -137,10 +137,10 @@ class TrainModule(nn.Module):
 
 
 if __name__ == "__main__":
-    train_module = TrainModule()
+    trainer_module = TrainerModule()
     
     mnist = MNIST(
-        "/mnt/c/Users/EISENBNT/Datasets/MNIST", 
+        "/home/nicholas/datasets/mnist", 
         train=True,
         transform=ToTensor(),
         download=True
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     tloader = DataLoader(Subset(mnist, range(50000)), 64)
     vloader = DataLoader(Subset(mnist, range(50000, 60000)), 64)
     
-    trainer = Trainer(train_module)
+    trainer = Trainer(trainer_module)
     
     trainer.fit(
         train_loader=tloader,

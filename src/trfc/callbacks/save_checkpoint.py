@@ -27,29 +27,29 @@ class SaveBestCheckoint(Callback):
 
 
     def before_all_epochs(self, trainer: Trainer, *args, **kwargs):
-        assert hasattr(trainer, "train_module")
+        assert hasattr(trainer, "trainer_module")
 
-        assert hasattr(trainer.train_module, "logger")
+        assert hasattr(trainer.trainer_module, "logger")
 
-        assert hasattr(trainer.train_module.logger, "train_history")
-        assert hasattr(trainer.train_module.logger, "validation_history")
+        assert hasattr(trainer.trainer_module.logger, "train_history")
+        assert hasattr(trainer.trainer_module.logger, "validation_history")
 
-        assert hasattr(trainer.train_module, "model")
-        assert hasattr(trainer.train_module, "optimizer")
+        assert hasattr(trainer.trainer_module, "model")
+        assert hasattr(trainer.trainer_module, "optimizer")
 
         assert hasattr(trainer, "which_pass")
         assert hasattr(trainer, "current_epoch")
 
 
     def after_train_epoch_pass(self, trainer: Trainer, *args, **kwargs):
-        assert self.key in trainer.train_module.logger.train_history
+        assert self.key in trainer.trainer_module.logger.train_history
 
         if self.save_checkpoint_flag(trainer, trainer.which_pass):
             self.save_checkpoint(trainer, trainer.which_pass)
 
 
     def after_validation_epoch_pass(self, trainer: Trainer, *args, **kwargs):
-        assert self.key in trainer.train_module.logger.validation_history
+        assert self.key in trainer.trainer_module.logger.validation_history
         if self.save_checkpoint_flag(trainer, trainer.which_pass):
             self.save_checkpoint(trainer, trainer.which_pass)
 
@@ -58,13 +58,13 @@ class SaveBestCheckoint(Callback):
         save_ckp = False
     
         if which == "train":
-            value = trainer.train_module.logger.train_history[self.key][-1]
+            value = trainer.trainer_module.logger.train_history[self.key][-1]
             if self.train_check(value, self.best_train_val):
                 save_ckp = True
                 self.best_train_val = value
     
         elif which == "validation":
-            value = trainer.train_module.logger.train_history[self.key][-1]
+            value = trainer.trainer_module.logger.train_history[self.key][-1]
             if self.validation_check(value, self.best_validation_val):
                 save_ckp = True
                 self.best_validation_val = value
@@ -73,8 +73,8 @@ class SaveBestCheckoint(Callback):
 
 
     def save_checkpoint(self, trainer: Trainer, *args, **kwargs):
-        model = trainer.train_module.model
-        optimizer = trainer.train_module.optimizer
+        model = trainer.trainer_module.model
+        optimizer = trainer.trainer_module.optimizer
     
         checkpoint = {}
     

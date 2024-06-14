@@ -188,8 +188,8 @@ if __name__ == "__main__":
     init_process_group(backend="nccl")
     tloader, vloader = format_loaders()
 
-    train_module = TrainModule()
-    trainer = Trainer(train_module)
+    trainer_module = TrainModule()
+    trainer = Trainer(trainer_module)
     
     trainer.fit(
         train_loader=tloader,

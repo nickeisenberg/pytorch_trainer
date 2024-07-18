@@ -26,7 +26,7 @@ class ConfusionMatrix(Callback):
         self.targets += targets.tolist()
 
 
-    def before_all_epochs(self, trainer: Trainer, *args, **kwargs):
+    def on_fit_start(self, trainer: Trainer, *args, **kwargs):
         assert hasattr(trainer, "trainer_module")
         assert hasattr(trainer, "which_pass")
         assert hasattr(trainer, "current_epoch")

@@ -10,7 +10,7 @@ class LoadCheckpoint(Callback):
     def __init__(self, load_from: str):
         self.load_from = load_from
 
-    def before_all_epochs(self, trainer: Trainer, *args, **kwargs):
+    def on_fit_start(self, trainer: Trainer, *args, **kwargs):
         assert hasattr(trainer, "trainer_module")
 
         assert hasattr(trainer.trainer_module, "model")

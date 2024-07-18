@@ -16,7 +16,7 @@ class CSVLogger(Callback):
         self._avg_epoch_history = defaultdict(float)
 
 
-    def before_all_epochs(self, trainer: Trainer, *args, **kwargs):
+    def on_fit_start(self, trainer: Trainer, *args, **kwargs):
         assert hasattr(trainer, "trainer_module")
         assert hasattr(trainer.trainer_module, "logger")
 

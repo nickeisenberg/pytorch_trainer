@@ -1,108 +1,56 @@
-from ..trainer.trainer import Trainer
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from collections.abc import Callable
 
 
-class Callback(ABC):
-    def before_all_epochs(self, trainer: Trainer, *args, **kwargs):
-        pass
+def _callback_not_implemented():
+    return None
 
-    def before_train_epoch_pass(self, trainer: Trainer, *args, **kwargs):
-        pass
-
-    def before_train_batch_pass(self, trainer: Trainer, *args, **kwargs):
-        pass
-    
-    def after_train_epoch_pass(self, trainer: Trainer, *args, **kwargs):
-        pass
-
-    def before_validation_epoch_pass(self, trainer: Trainer, *args, **kwargs):
-        pass
-
-    def before_validation_batch_pass(self, trainer: Trainer, *args, **kwargs):
-        pass
-
-    def after_validation_epoch_pass(self, trainer: Trainer, *args, **kwargs):
-        pass
-
-    def after_all_epochs(self, trainer: Trainer, *args, **kwargs):
-        pass
+_callbacks = {
+    "on_fit_start": _callback_not_implemented,
+    "before_train_epoch_pass": _callback_not_implemented,
+    "before_train_batch_pass": _callback_not_implemented,
+    "after_train_batch_pass": _callback_not_implemented,
+    "after_train_epoch_pass": _callback_not_implemented,
+    "before_validation_epoch_pass": _callback_not_implemented,
+    "before_validation_batch_pass": _callback_not_implemented,
+    "after_validation_batch_pass": _callback_not_implemented,
+    "after_validation_epoch_pass": _callback_not_implemented,
+    "on_fit_end": _callback_not_implemented,
+}
 
 
-# TODO: Implement a more robust callback system
-class Callbacks:
+class Callback:
     """Handles all registered callbacks for Hooks."""
 
     def __init__(self):
         """Initializes a Callbacks object to manage registered event hooks."""
-        self._callbacks = {
-            "before_all_epochs": [],
-            "before_train_epoch_pass": [],
-            "before_train_batch_pass": [],
-            "after_train_batch_pass": [],
-            "after_train_epoch_pass": [],
-            "before_validation_epoch_pass": [],
-            "before_validation_batch_pass": [],
-            "after_validation_batch_pass": [],
-            "after_validation_epoch_pass": [],
-            "after_all_epochs": [],
-        }
-        self.stop_training = False  # set True to interrupt training
 
+        self._callbacks = _callbacks
         self.register_all_actions()
 
+    @property
+    def callbacks(self) -> dict[str, Callable]:
+        return self._callbacks
     
     @abstractmethod
     def register_all_actions(self) -> None:
-        raise Exception("register_all_actions was not implemented")
-
-
-    def register_action(self, hook, name="", callback=None):
-        """
-        Register a new action to a callback hook.
-
-        Args:
-            hook: The callback hook name to register the action to
-            name: The name of the action for later reference
-            callback: The callback to fire
-        """
-
-        try:
-            assert hook in self._callbacks
-        except:
-            raise Exception(f"hook '{hook}' not found in callbacks {self._callbacks}")
-
-        try:
-            assert callable(callback)
-        except:
-            raise Exception(f"callback '{callback}' is not callable")
-
-        self._callbacks[hook].append({"name": name, "callback": callback})
-
-
-    def get_registered_actions(self, hook=None):
-        """
-        Returns all the registered actions by callback hook.
-
-        Args:
-            hook: The name of the hook to check, defaults to all
-        """
-        return self._callbacks[hook] if hook else self._callbacks
-
-
-    def run(self, hook, *args, **kwargs):
-        """
-        Loop through the registered actions and fire all callbacks on main thread.
-
-        Args:
-            hook: The name of the hook to check, defaults to all
-            args: Arguments to receive
-            kwargs: Keyword Arguments to receive 
-        """
-        
-        try:
-            assert hook in self._callbacks
-        except:
-            raise Exception(f"hook '{hook}' not found in callbacks {self._callbacks}")
-
-        for logger in self._callbacks[hook]:
-            logger["callback"](*args, **kwargs)
+        atlease_one_callback_set = False
+        for callback in self.callbacks.keys():
+            if hasattr(self, callback):
+                self.callbacks[callback] = getattr(self, callback)
+                atlease_one_callback_set = True
+        if not atlease_one_callback_set:
+            error_message = """ No callback was set. Ensure to set one of the 
+            following:
+                - before_all_epoch
+                - before_train_epoch_pass
+                - before_train_batch_pass
+                - after_train_batch_pass
+                - after_train_epoch_pass
+                - before_validation_epoch_pass
+                - before_validation_batch_pass
+                - after_validation_batch_pass
+                - after_validation_epoch_pass
+                - on_fit_end
+            """
+            raise Exception(error_message)

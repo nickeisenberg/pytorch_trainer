@@ -26,7 +26,7 @@ class SaveBestCheckoint(Callback):
         self.validation_check = validation_check
 
 
-    def before_all_epochs(self, trainer: Trainer, *args, **kwargs):
+    def on_fit_start(self, trainer: Trainer, *args, **kwargs):
         assert hasattr(trainer, "trainer_module")
 
         assert hasattr(trainer.trainer_module, "logger")

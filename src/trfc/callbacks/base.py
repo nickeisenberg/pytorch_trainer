@@ -2,7 +2,7 @@ from abc import abstractmethod
 from collections.abc import Callable
 
 
-def _callback_not_implemented():
+def _callback_not_implemented(*args, **kwargs):
     return None
 
 _callbacks = {

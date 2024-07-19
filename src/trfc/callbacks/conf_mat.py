@@ -28,16 +28,16 @@ class ConfusionMatrix(Callback):
 
     def on_fit_start(self, trainer: Trainer, *args, **kwargs):
         assert hasattr(trainer, "trainer_module")
-        assert hasattr(trainer, "which_pass")
+        assert hasattr(trainer, "current_pass")
         assert hasattr(trainer, "current_epoch")
 
 
     def after_train_epoch_pass(self, trainer: Trainer, *args, **kwargs):
-        self.reset_state(trainer.which_pass, trainer.current_epoch)
+        self.reset_state(trainer.current_pass, trainer.current_epoch)
 
 
     def after_validation_epoch_pass(self, trainer: Trainer, *args, **kwargs):
-        self.reset_state(trainer.which_pass, trainer.current_epoch)
+        self.reset_state(trainer.current_pass, trainer.current_epoch)
 
 
     def reset_state(self, which, epoch, *args, **kwargs):

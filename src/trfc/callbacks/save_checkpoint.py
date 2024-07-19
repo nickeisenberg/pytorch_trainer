@@ -37,21 +37,21 @@ class SaveBestCheckoint(Callback):
         assert hasattr(trainer.trainer_module, "model")
         assert hasattr(trainer.trainer_module, "optimizer")
 
-        assert hasattr(trainer, "which_pass")
+        assert hasattr(trainer, "current_pass")
         assert hasattr(trainer, "current_epoch")
 
 
     def after_train_epoch_pass(self, trainer: Trainer, *args, **kwargs):
         assert self.key in trainer.trainer_module.logger.train_history
 
-        if self.save_checkpoint_flag(trainer, trainer.which_pass):
-            self.save_checkpoint(trainer, trainer.which_pass)
+        if self.save_checkpoint_flag(trainer, trainer.current_pass):
+            self.save_checkpoint(trainer, trainer.current_pass)
 
 
     def after_validation_epoch_pass(self, trainer: Trainer, *args, **kwargs):
         assert self.key in trainer.trainer_module.logger.validation_history
-        if self.save_checkpoint_flag(trainer, trainer.which_pass):
-            self.save_checkpoint(trainer, trainer.which_pass)
+        if self.save_checkpoint_flag(trainer, trainer.current_pass):
+            self.save_checkpoint(trainer, trainer.current_pass)
 
     
     def save_checkpoint_flag(self, trainer: Trainer, which):
@@ -79,7 +79,7 @@ class SaveBestCheckoint(Callback):
         checkpoint = {}
     
         save_to = os.path.join(
-            self.state_dict_root, f"{trainer.which_pass}_ckp.pth"
+            self.state_dict_root, f"{trainer.current_pass}_ckp.pth"
         )
     
         if isinstance(model, DataParallel):

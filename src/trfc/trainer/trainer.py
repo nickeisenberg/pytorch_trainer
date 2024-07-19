@@ -28,13 +28,23 @@ class Trainer:
             "on_fit_end": [],
         }
 
+        self._env = {}
+
         self._progress_bar = ProgressBar()
         # register all callbacks
         if callbacks:
             self._register_callbacks(callbacks)
         else:
             self._register_callbacks([self.progress_bar_callback])
+    
+    @property
+    def env(self):
+        """Enviornment variables to pass around"""
+        return self._env
 
+    def put_to_env(self, **kwargs):
+        for k, v in kwargs.items():
+            self.env[k] = v
 
     @property
     def callbacks(self):
@@ -45,41 +55,44 @@ class Trainer:
             num_epochs: int,
             val_loader: DataLoader | None = None):
         
-        # some "env" variables
-        self.current_epoch = 0 
-        self.which_pass = "N/A" 
+        self.put_to_env(
+            current_pass="N/A", 
+            current_epoch="N/A", 
+            current_batch_idx="N/A" ,
+            train_loader=train_loader,
+            num_epochs=num_epochs,
+            val_loader=val_loader
+        )
 
-        self.call("on_fit_start", self, train_loader=train_loader, 
-                  num_epochs=num_epochs, val_loader=val_loader)
+        self.call("on_fit_start", self)
 
         for epoch in range(1, num_epochs + 1):
-            self.current_epoch = epoch
-            self.which_pass = "train" 
+            self.put_to_env(current_epoch=epoch, current_pass="train")
 
-            self.call(f"before_{self.which_pass}_epoch_pass", self)
+            self.call("before_train_epoch_pass", self)
             self.epoch_pass(
                 loader=self.progress_bar_callback.train_progress_bar,
-                batch_pass=getattr(self.trainer_module, f"{self.which_pass}_batch_pass")
+                batch_pass=getattr(self.trainer_module, "train_batch_pass")
             )
-            self.call(f"after_{self.which_pass}_epoch_pass", self)
+            self.call("after_train_epoch_pass", self)
 
             if val_loader is not None:
-                self.which_pass = "validation"
+                self.current_pass = "validation"
 
-                self.call(f"before_{self.which_pass}_epoch_pass", self)
+                self.call("before_validation_epoch_pass", self)
                 self.epoch_pass(
                     loader=self.progress_bar_callback.val_progress_bar,
-                    batch_pass=getattr(self.trainer_module, f"{self.which_pass}_batch_pass")
+                    batch_pass=getattr(self.trainer_module, "validation_batch_pass")
                 )
-                self.call(f"after_{self.which_pass}_epoch_pass", self)
+                self.call(f"after_validatin_epoch_pass", self)
 
         self.call("on_fit_end", self)
 
     def epoch_pass(self, loader: tqdm, batch_pass: Callable):
         for batch_idx, data in enumerate(loader):
-            self.call(f"before_{self.which_pass}_batch_pass", self, batch_idx=batch_idx)
+            self.call(f"before_{self.current_pass}_batch_pass", self, batch_idx=batch_idx)
             batch_pass(data, batch_idx)
-            self.call(f"after_{self.which_pass}_batch_pass", self, batch_idx=batch_idx)
+            self.call(f"after_{self.current_pass}_batch_pass", self, batch_idx=batch_idx)
 
     def call(self, where_at: str, *args, **kwargs):
         for callback in self.callbacks[where_at]:

@@ -1,7 +1,8 @@
 from collections.abc import Iterable
 from tqdm import tqdm
 
-from .base import Callback
+from .base import ProgressBar as _ProgressBar
+from ...trainer import Trainer
 
 
 def tqdm_postfix_to_dictionary(postfix: str):
@@ -14,7 +15,7 @@ def append_tqdm_postfix(pbar: tqdm, **kwargs):
     )
 
 
-class ProgressBar(Callback):
+class ProgressBar(_ProgressBar):
     """The progress bar"""
 
     def __init__(self):
@@ -93,24 +94,22 @@ class ProgressBar(Callback):
         else:
             raise Exception("ERROR: pbar must be a tqdm")
     
-    def on_fit_start(self, trainer):
-        self.train_loader = trainer.env["train_loader"]
-        if trainer.val_loader is not None:
-            self.val_loader = trainer.env["val_loader"]
+    def on_fit_start(self, trainer: Trainer):
+        self.train_loader = trainer.variables.train_loader
+        if trainer.variables.val_loader is not None:
+            self.val_loader = trainer.variables.val_loader
 
-    def on_train_batch_start(self, trainer):
+    def on_train_batch_start(self, trainer: Trainer):
         self.train_progress_bar = tqdm(self.train_loader, leave=True)
-        pass
 
-    def on_validation_batch_start(self, trainer):
+    def on_validation_batch_start(self, trainer: Trainer):
         self.val_progress_bar = tqdm(self.val_loader, leave=True)
-        pass
 
-    def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
+    def on_train_batch_end(self, trainer: Trainer) -> None:
         append_tqdm_postfix(self.train_progress_bar, **self.postfix)
         self.postfix = {}
 
-    def on_validation_batch_end(self, trainer, *args, **kwargs) -> None:
+    def on_validation_batch_end(self, trainer: Trainer) -> None:
         if self.val_progress_bar is not None:
             append_tqdm_postfix(self.val_progress_bar, **self.postfix)
             self.postfix = {}

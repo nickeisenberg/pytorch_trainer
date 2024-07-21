@@ -1,11 +1,87 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from ..callbacks.base import Callback
-from ..callbacks.progress_bar import ProgressBar
+from ..callbacks.progress_bar.base import ProgressBar
 
+
+class Variables:
+    def __init__(self):
+        self._current_pass = None
+        self._current_epoch = None
+        self._current_batch_idx = None
+        self._train_loader = None
+        self._num_epochs = None
+        self._val_loader = None
+    
+    @property
+    def current_pass(self):
+        return self._current_pass
+
+    @current_pass.setter
+    def current_pass(self, current_pass: str):
+        if isinstance(current_pass, str):
+            if current_pass in ["train", "val", "test"]:
+                self._current_pass = current_pass
+        else:
+            raise Exception("ERROR: current_pass must be train, val or test.")
+
+    @property
+    def current_epoch(self):
+        return self._current_epoch
+
+    @current_epoch.setter
+    def current_epoch(self, current_epoch: int):
+        if isinstance(current_epoch, int):
+            self._current_epoch = current_epoch
+        else:
+            raise Exception("ERROR: current_epoch must be an int")
+
+    @property
+    def current_batch_idx(self):
+        return self._current_batch_idx
+
+    @current_batch_idx.setter
+    def current_batch_idx(self, current_batch_idx: int):
+        if isinstance(current_batch_idx, int):
+            self._current_batch_idx = current_batch_idx
+        else:
+            raise Exception("ERROR: current_batch_idx must be an int")
+
+    @property
+    def train_loader(self):
+        return self._train_loader
+
+    @train_loader.setter
+    def train_loader(self, train_loader: Iterable):
+        if isinstance(train_loader, Iterable):
+            self._train_loader = train_loader 
+        else:
+            raise Exception("ERROR: train_loader must be an Iterable")
+
+    @property
+    def val_loader(self):
+        return self._val_loader
+
+    @val_loader.setter
+    def val_loader(self, val_loader: Iterable):
+        if isinstance(val_loader, Iterable):
+            self._val_loader = val_loader 
+        else:
+            raise Exception("ERROR: val_loader must be an Iterable")
+
+    @property
+    def num_epochs(self):
+        return self._num_epochs
+
+    @num_epochs.setter
+    def num_epochs(self, num_epochs: int):
+        if isinstance(num_epochs, int):
+            self._num_epochs = num_epochs 
+        else:
+            raise Exception("ERROR: num_epochs must be an int")
 
 
 class Trainer:
@@ -28,23 +104,11 @@ class Trainer:
             "on_fit_end": [],
         }
 
-        self._env = {}
+        self.variables = Variables()
 
-        self._progress_bar = ProgressBar()
         # register all callbacks
         if callbacks:
             self._register_callbacks(callbacks)
-        else:
-            self._register_callbacks([self.progress_bar_callback])
-    
-    @property
-    def env(self):
-        """Enviornment variables to pass around"""
-        return self._env
-
-    def put_to_env(self, **kwargs):
-        for k, v in kwargs.items():
-            self.env[k] = v
 
     @property
     def callbacks(self):
@@ -54,20 +118,17 @@ class Trainer:
             train_loader: DataLoader,
             num_epochs: int,
             val_loader: DataLoader | None = None):
-        
-        self.put_to_env(
-            current_pass="N/A", 
-            current_epoch="N/A", 
-            current_batch_idx="N/A" ,
-            train_loader=train_loader,
-            num_epochs=num_epochs,
-            val_loader=val_loader
-        )
+
+        self.variables.train_loader = train_loader,
+        self.variables.num_epochs = num_epochs
+        if val_loader:
+            self.variables.val_loader = val_loader
 
         self.call("on_fit_start", self)
 
         for epoch in range(1, num_epochs + 1):
-            self.put_to_env(current_epoch=epoch, current_pass="train")
+            self.variables.current_epoch = epoch
+            self.variables.current_pass = "train"
 
             self.call("before_train_epoch_pass", self)
             self.epoch_pass(
@@ -90,9 +151,11 @@ class Trainer:
 
     def epoch_pass(self, loader: tqdm, batch_pass: Callable):
         for batch_idx, data in enumerate(loader):
-            self.call(f"before_{self.current_pass}_batch_pass", self, batch_idx=batch_idx)
+            self.variables.current_batch_idx = batch_idx
+
+            self.call(f"before_{self.current_pass}_batch_pass", self)
             batch_pass(data, batch_idx)
-            self.call(f"after_{self.current_pass}_batch_pass", self, batch_idx=batch_idx)
+            self.call(f"after_{self.current_pass}_batch_pass", self)
 
     def call(self, where_at: str, *args, **kwargs):
         for callback in self.callbacks[where_at]:
@@ -104,10 +167,17 @@ class Trainer:
             for k, v in callback.callbacks.items():
                 self._callbacks[k].append(v)
 
+                # handle special callbacks
+                if isinstance(v, ProgressBar):
+                    self.progress_bar_callback = v
+
     @property 
     def progress_bar_callback(self) -> ProgressBar:
-        for callback in self._callbacks:
-            if isinstance(callback, ProgressBar):
-                self._progress_bar = callback
-                return callback
         return self._progress_bar
+
+    @progress_bar_callback.setter 
+    def progress_bar_callback(self, pbar: ProgressBar):
+        if isinstance(pbar, ProgressBar):
+            self._progress_bar = pbar 
+        else:
+            raise Exception("ERROR: pbar must be a ProgressBar")

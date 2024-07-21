@@ -145,7 +145,7 @@ class Trainer:
                     loader=self.progress_bar_callback.val_progress_bar,
                     batch_pass=getattr(self.trainer_module, "validation_batch_pass")
                 )
-                self.call(f"after_validatin_epoch_pass", self)
+                self.call(f"after_validation_epoch_pass", self)
 
         self.call("on_fit_end", self)
 

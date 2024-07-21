@@ -8,12 +8,10 @@ from ...trainer import Trainer
 def tqdm_postfix_to_dictionary(postfix: str):
     return dict([x.strip().split("=") for x in postfix.split(",")]) if postfix else {}
 
-
 def append_tqdm_postfix(pbar: tqdm, **kwargs):
     pbar.set_postfix(
         {**tqdm_postfix_to_dictionary(pbar.postfix), **{k: v for k, v in kwargs.items()}}
     )
-
 
 class ProgressBar(_ProgressBar):
     """The progress bar"""
@@ -99,17 +97,17 @@ class ProgressBar(_ProgressBar):
         if trainer.variables.val_loader is not None:
             self.val_loader = trainer.variables.val_loader
 
-    def on_train_batch_start(self, trainer: Trainer):
+    def before_train_epoch_pass(self, trainer: Trainer):
         self.train_progress_bar = tqdm(self.train_loader, leave=True)
 
-    def on_validation_batch_start(self, trainer: Trainer):
+    def before_validation_epoch_pass(self, trainer: Trainer):
         self.val_progress_bar = tqdm(self.val_loader, leave=True)
 
-    def on_train_batch_end(self, trainer: Trainer) -> None:
+    def after_train_batch_pass(self, trainer: Trainer) -> None:
         append_tqdm_postfix(self.train_progress_bar, **self.postfix)
         self.postfix = {}
 
-    def on_validation_batch_end(self, trainer: Trainer) -> None:
+    def after_validation_batch_pass(self, trainer: Trainer) -> None:
         if self.val_progress_bar is not None:
             append_tqdm_postfix(self.val_progress_bar, **self.postfix)
             self.postfix = {}

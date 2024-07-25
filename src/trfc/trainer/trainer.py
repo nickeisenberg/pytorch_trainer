@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterable
+from typing import Literal
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -23,7 +24,7 @@ class Variables:
     @current_pass.setter
     def current_pass(self, current_pass: str):
         if isinstance(current_pass, str):
-            if current_pass in ["train", "val", "test"]:
+            if current_pass in ["train", "validation", "test"]:
                 self._current_pass = current_pass
         else:
             raise Exception("ERROR: current_pass must be train, val or test.")
@@ -86,10 +87,12 @@ class Variables:
 
 class Trainer:
     def __init__(self, 
-                 trainer_module: nn.Module,
+                 module: nn.Module,
+                 device: Literal["cpu", "cuda", "mps"] = "cpu",
                  callbacks: list[Callback] | None = None):
 
-        self.trainer_module = trainer_module 
+        self.device = device
+        self.module = module.to(device)
         
         self._callbacks: dict[str, list[Callable]] = {
             "on_fit_start": [],
@@ -117,6 +120,7 @@ class Trainer:
     def fit(self, 
             train_loader: DataLoader,
             num_epochs: int,
+            data_devicer: Callable | None = None,
             val_loader: DataLoader | None = None):
 
         self.variables.train_loader = train_loader
@@ -133,24 +137,29 @@ class Trainer:
             self.call("before_train_epoch_pass", self)
             self.epoch_pass(
                 loader=self.progress_bar_callback.train_progress_bar,
-                batch_pass=getattr(self.trainer_module, "train_batch_pass")
+                data_devicer=data_devicer,
+                batch_pass=getattr(self.module, "train_batch_pass")
             )
             self.call("after_train_epoch_pass", self)
 
             if val_loader is not None:
-                self.current_pass = "validation"
+                self.variables.current_pass = "validation"
 
                 self.call("before_validation_epoch_pass", self)
                 self.epoch_pass(
                     loader=self.progress_bar_callback.val_progress_bar,
-                    batch_pass=getattr(self.trainer_module, "validation_batch_pass")
+                    data_devicer=data_devicer,
+                    batch_pass=getattr(self.module, "validation_batch_pass")
                 )
                 self.call(f"after_validation_epoch_pass", self)
 
         self.call("on_fit_end", self)
 
-    def epoch_pass(self, loader: tqdm, batch_pass: Callable):
+    def epoch_pass(self, loader: tqdm, data_devicer: Callable | None, batch_pass: Callable):
         for batch_idx, data in enumerate(loader):
+            if data_devicer:
+                data = data_devicer(data, self.device)
+
             self.variables.current_batch_idx = batch_idx
 
             self.call(f"before_{self.variables.current_pass}_batch_pass", self)

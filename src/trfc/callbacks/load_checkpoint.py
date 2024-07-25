@@ -11,14 +11,14 @@ class LoadCheckpoint(Callback):
         self.load_from = load_from
 
     def on_fit_start(self, trainer: Trainer, *args, **kwargs):
-        assert hasattr(trainer, "trainer_module")
+        assert hasattr(trainer, "module")
 
-        assert hasattr(trainer.trainer_module, "model")
-        assert hasattr(trainer.trainer_module, "optimizer")
-        assert hasattr(trainer.trainer_module, "state_dict_root")
-        assert hasattr(trainer.trainer_module, "device")
+        assert hasattr(trainer.module, "model")
+        assert hasattr(trainer.module, "optimizer")
+        assert hasattr(trainer.module, "state_dict_root")
+        assert hasattr(trainer.module, "device")
 
-        self.state_dict_root = trainer.trainer_module.state_dict_root
+        self.state_dict_root = trainer.module.state_dict_root
 
         self.load_checkpoint(trainer)
 
@@ -29,18 +29,18 @@ class LoadCheckpoint(Callback):
         for state in train_checkpoint["OPTIMIZER_STATE"]["state"].values():
             for k, v in state.items():
                 if isinstance(v, Tensor):
-                    state[k] = v.to(trainer.trainer_module.device)
+                    state[k] = v.to(trainer.module.device)
     
-        if isinstance(trainer.trainer_module.model, DataParallel):
-            trainer.trainer_module.model.module.load_state_dict(
+        if isinstance(trainer.module.model, DataParallel):
+            trainer.module.model.module.load_state_dict(
                 train_checkpoint["MODEL_STATE"]
             )
         else:
-            trainer.trainer_module.model.load_state_dict(
+            trainer.module.model.load_state_dict(
                 train_checkpoint["MODEL_STATE"]
             )
     
-        trainer.trainer_module.model.optimizer.load_state_dict(
+        trainer.module.model.optimizer.load_state_dict(
             train_checkpoint["OPTIMIZER_STATE"]
         )
-        trainer.trainer_module.model.epochs_run = train_checkpoint["EPOCHS_RUN"]
+        trainer.module.model.epochs_run = train_checkpoint["EPOCHS_RUN"]

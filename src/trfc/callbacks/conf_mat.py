@@ -27,7 +27,7 @@ class ConfusionMatrix(Callback):
 
 
     def on_fit_start(self, trainer: Trainer, *args, **kwargs):
-        assert hasattr(trainer, "trainer_module")
+        assert hasattr(trainer, "module")
         assert hasattr(trainer, "current_pass")
         assert hasattr(trainer, "current_epoch")
 

@@ -30,7 +30,7 @@ class Classifier(nn.Module):
         x = self.relu(self.linear1(self.flatten(x)))
         return self.linear2(x)
 
-progress_bar = ProgressBar()
+progress_bar = ProgressBar(log_to_bar_every=15)
 
 class TMod(nn.Module):
     def __init__(self):
@@ -75,15 +75,27 @@ class TMod(nn.Module):
         loss = self.cross_entropy(preds, labs)
         accuracy = round(float((pred_labels == labs).sum() * 100 / len(labs)), 2)
 
+        self.progress_bar.log("accuracy", accuracy)
+        self.progress_bar.log("loss", loss.item())
+
 
 mnist = MNIST(os.path.expanduser("~/datasets/mnist"), transform=ToTensor())
 train_loader = DataLoader(Subset(mnist, range(50000)), batch_size=64, num_workers=19)
 val_loader = DataLoader(Subset(mnist, range(50000, 60000)), batch_size=64, num_workers=19)
 
-trainer_mod = TMod()
+module = TMod()
+
 trainer = Trainer(
-    trainer_mod, 
+    module, 
+    device="cuda",
     callbacks=[progress_bar]
 )
 
-trainer.fit(train_loader, 2, val_loader)
+data_devicer = lambda batch, device: (batch[0].to(device), batch[1].to(device))
+
+trainer.fit(
+    train_loader=train_loader, 
+    num_epochs=2, 
+    data_devicer=data_devicer,
+    val_loader=val_loader
+)

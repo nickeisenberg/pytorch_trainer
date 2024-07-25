@@ -70,10 +70,10 @@ class ProgressBar(_ProgressBar):
             self.val_loader = trainer.variables.val_loader
 
     def before_train_epoch_pass(self, trainer: Trainer):
-        self.train_progress_bar = tqdm(self.train_loader, leave=True)
+        self.train_progress_bar = tqdm(trainer.variables.train_loader, leave=True)
 
     def before_validation_epoch_pass(self, trainer: Trainer):
-        self.val_progress_bar = tqdm(self.val_loader, leave=True)
+        self.val_progress_bar = tqdm(trainer.variables.val_loader, leave=True)
 
     def after_train_batch_pass(self, trainer: Trainer) -> None:
         append_tqdm_postfix(self.train_progress_bar, **self.postfix)

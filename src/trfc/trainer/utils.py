@@ -32,6 +32,19 @@ def device_and_module_setup(module: nn.Module,
         raise Exception("ERROR: Device not supported.")
 
 
+def get_batch_pass_from_module(
+        module: nn.Module | nn.parallel.DistributedDataParallel, 
+        current_pass: str, 
+        ddp: bool):
+
+    if not ddp:
+        batch_pass = getattr(module, f"{current_pass}_batch_pass")
+    else:
+        batch_pass = getattr(module.module, f"{current_pass}_batch_pass")
+
+    return batch_pass
+
+
 class Variables:
     def __init__(self):
         self._current_pass = None

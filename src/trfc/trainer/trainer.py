@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 from tqdm import tqdm
 
-from .utils import device_and_module_setup, Variables
+from .utils import device_and_module_setup, get_batch_pass_from_module, Variables
 from ..callbacks.base import Callback
 from ..callbacks.progress_bar.base import ProgressBar
 
@@ -59,11 +59,10 @@ class Trainer:
         for epoch in range(1, num_epochs + 1):
             self.variables.current_epoch = epoch
             self.variables.current_pass = "train"
-            
-            if not self.ddp:
-                train_batch_pass = getattr(self.module, "train_batch_pass")
-            else:
-                train_batch_pass = getattr(self.module.module, "train_batch_pass")
+
+            train_batch_pass = get_batch_pass_from_module(
+                    self.module, self.variables.current_pass, self.ddp
+            )
 
             self.call("before_train_epoch_pass", self)
             self.epoch_pass(
@@ -76,10 +75,9 @@ class Trainer:
             if validation_loader is not None:
                 self.variables.current_pass = "validation"
 
-                if not self.ddp:
-                    validation_batch_pass = getattr(self.module, "validation_batch_pass")
-                else:
-                    validation_batch_pass = getattr(self.module.module, "validation_batch_pass")
+                validation_batch_pass = get_batch_pass_from_module(
+                        self.module, self.variables.current_pass, self.ddp
+                )
 
                 self.call("before_validation_epoch_pass", self)
                 self.epoch_pass(

@@ -19,8 +19,6 @@ class ProgressBar(_ProgressBar):
     def __init__(self):
         super().__init__()
 
-        self._train_loader = None
-        self._val_loader = None
         self._postfix = {}
         self._train_progress_bar = None
         self._val_progress_bar = None
@@ -28,32 +26,6 @@ class ProgressBar(_ProgressBar):
     def log(self, name, value):
         """Log values intra batch to be displayed to the tqdm bar"""
         self.postfix[name] = value
-    
-    @property
-    def train_loader(self):
-        if self._train_loader is None:
-            raise Exception("ERROR: train_loader is called before being set.")
-        return self._train_loader
-    
-    @train_loader.setter
-    def train_loader(self, train_loader):
-        if isinstance(train_loader, Iterable):
-            self._train_loader = train_loader
-        else:
-            raise Exception("ERROR: train_loader must be a Iterable")
-
-    @property
-    def val_loader(self):
-        if self._val_loader is None:
-            raise Exception("ERROR: train_loader is called before being set.")
-        return self._val_loader
-
-    @val_loader.setter
-    def val_loader(self, val_loader):
-        if isinstance(val_loader, Iterable):
-            self._val_loader = val_loader
-        else:
-            raise Exception("ERROR: val_loader must be a Iterable")
     
     @property
     def postfix(self):

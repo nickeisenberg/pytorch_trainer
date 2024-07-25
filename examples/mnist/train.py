@@ -6,8 +6,10 @@ from torch.utils.data import DataLoader, Subset
 
 from torchvision.transforms import ToTensor
 from torchvision.datasets import MNIST
+from tqdm import tqdm
 
 from src.trfc.trainer import Trainer
+from src.trfc.callbacks.progress_bar.progress_bar import ProgressBar
 
 
 class Classifier(nn.Module):
@@ -29,13 +31,18 @@ class Classifier(nn.Module):
         x = self.relu(self.linear1(self.flatten(x)))
         return self.linear2(x)
 
+progress_bar = ProgressBar()
 
 class TMod(nn.Module):
     def __init__(self):
         super().__init__()
+
         self.classifier = Classifier()
+
         self.cross_entropy = nn.CrossEntropyLoss()
         self.optim = torch.optim.Adam(self.classifier.parameters(), lr=.0001)
+
+        self.progress_bar = progress_bar 
 
     def forward(self, x):
         return self.classifier(x)
@@ -55,6 +62,9 @@ class TMod(nn.Module):
 
         accuracy = round(float((pred_labels == labs).sum() * 100 / len(labs)), 2)
 
+        self.progress_bar.log("accuracy", accuracy)
+        self.progress_bar.log("loss", loss.item())
+
     def validation_batch_pass(self, batch, batch_idx):
         if self.classifier.training:
             self.classifier.eval() 
@@ -72,6 +82,6 @@ train_loader = DataLoader(Subset(mnist, range(50000)), batch_size=64, num_worker
 val_loader = DataLoader(Subset(mnist, range(50000, 60000)), batch_size=64, num_workers=19)
 
 trainer_mod = TMod()
-trainer = Trainer(trainer_mod)
+trainer = Trainer(trainer_mod, callbacks=[progress_bar])
 
 trainer.fit(train_loader, 2, val_loader)

@@ -119,7 +119,7 @@ class Trainer:
             num_epochs: int,
             val_loader: DataLoader | None = None):
 
-        self.variables.train_loader = train_loader,
+        self.variables.train_loader = train_loader
         self.variables.num_epochs = num_epochs
         if val_loader:
             self.variables.val_loader = val_loader
@@ -153,9 +153,9 @@ class Trainer:
         for batch_idx, data in enumerate(loader):
             self.variables.current_batch_idx = batch_idx
 
-            self.call(f"before_{self.current_pass}_batch_pass", self)
+            self.call(f"before_{self.variables.current_pass}_batch_pass", self)
             batch_pass(data, batch_idx)
-            self.call(f"after_{self.current_pass}_batch_pass", self)
+            self.call(f"after_{self.variables.current_pass}_batch_pass", self)
 
     def call(self, where_at: str, *args, **kwargs):
         for callback in self.callbacks[where_at]:
@@ -167,9 +167,9 @@ class Trainer:
             for k, v in callback.callbacks.items():
                 self._callbacks[k].append(v)
 
-                # handle special callbacks
-                if isinstance(v, ProgressBar):
-                    self.progress_bar_callback = v
+            # handle special callbacks
+            if isinstance(callback, ProgressBar):
+                self.progress_bar_callback = callback
 
     @property 
     def progress_bar_callback(self) -> ProgressBar:

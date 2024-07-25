@@ -32,7 +32,6 @@ class Callback:
     def callbacks(self) -> dict[str, Callable]:
         return self._callbacks
     
-    @abstractmethod
     def register_all_actions(self) -> None:
         atlease_one_callback_set = False
         for callback in self.callbacks.keys():

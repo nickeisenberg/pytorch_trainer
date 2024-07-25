@@ -3,6 +3,8 @@ import os
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
+from torch.utils.data.distributed import DistributedSampler
+from torch.distributed import init_process_group, destroy_process_group
 
 from torchvision.transforms import ToTensor
 from torchvision.datasets import MNIST
@@ -103,21 +105,22 @@ def loaders():
     train_dataset = Subset(mnist, range(50000))
     val_dataset = Subset(mnist, range(50000, 60000))
     train_loader = DataLoader(
-        train_dataset, batch_size=64, num_workers=19, shuffle=True
+        train_dataset, batch_size=64, num_workers=19, shuffle=False, sampler=DistributedSampler(train_dataset)
     )
     val_loader = DataLoader(
-        val_dataset, batch_size=64, shuffle=True, num_workers=19
+        val_dataset, batch_size=64, shuffle=False, num_workers=19, sampler=DistributedSampler(val_dataset)
     )
     return train_loader, val_loader
 
 def main():
+    init_process_group(backend="nccl")
     train_loader, val_loader = loaders()
     progress_bar = ProgressBar(log_to_bar_every=15)
     module = TMod(progress_bar)
     trainer = Trainer(
         module, 
         device="gpu",
-        ddp=False,
+        ddp=True,
         callbacks=[progress_bar, DummyCallback()]
     )
     data_devicer = lambda batch, device: (batch[0].to(device), batch[1].to(device))
@@ -127,6 +130,7 @@ def main():
         data_devicer=data_devicer,
         val_loader=val_loader
     )
+    destroy_process_group()
 
 if __name__ == "__main__":
     main()

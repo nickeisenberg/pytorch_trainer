@@ -1,7 +1,9 @@
-from collections.abc import Callable, Iterable
-from typing import Literal
+import os
+from typing import Callable, Iterable, Literal
+
 import torch.nn as nn
 from torch.utils.data import DataLoader
+
 from tqdm import tqdm
 
 from ..callbacks.base import Callback
@@ -84,15 +86,42 @@ class Variables:
         else:
             raise Exception("ERROR: num_epochs must be an int")
 
+def device_and_module_setup(module: nn.Module, 
+                            device: Literal["cpu", "gpu", "mps"], 
+                            ddp: bool):
+    if device == "cpu":
+        if ddp:
+            raise Exception("ERROR: Distribution across CPUs is not supported")
+        else:
+            return module, device
+
+    elif device == "mps":
+        if ddp:
+            raise Exception("ERROR: Distribution across mps is not supported")
+        else:
+            return module.to("mps"), device 
+
+    elif device == "gpu":
+        if not ddp:
+            return module.to(0), 0 
+        else:
+            local_rank = int(os.environ["LOCAL_RANK"])
+            return nn.parallel.DistributedDataParallel(
+                module.to(local_rank), device_ids=[local_rank]
+            ), local_rank
+
+    else:
+        raise Exception("ERROR: Device not supported.")
 
 class Trainer:
     def __init__(self, 
                  module: nn.Module,
-                 device: Literal["cpu", "cuda", "mps"] = "cpu",
+                 device: Literal["cpu", "gpu", "mps"] = "cpu",
+                 ddp: bool = False,
                  callbacks: list[Callback] | None = None):
-
-        self.device = device
-        self.module = module.to(device)
+        
+        self.ddp = ddp
+        self.module, self.device = device_and_module_setup(module, device, ddp)
         
         self._callbacks: dict[str, list[Callable]] = {
             "on_fit_start": [],
@@ -127,29 +156,39 @@ class Trainer:
         self.variables.num_epochs = num_epochs
         if val_loader:
             self.variables.val_loader = val_loader
-
+        
         self.call("on_fit_start", self)
 
         for epoch in range(1, num_epochs + 1):
             self.variables.current_epoch = epoch
             self.variables.current_pass = "train"
+            
+            if not self.ddp:
+                train_batch_pass = getattr(self.module, "train_batch_pass")
+            else:
+                train_batch_pass = getattr(self.module.module, "train_batch_pass")
 
             self.call("before_train_epoch_pass", self)
             self.epoch_pass(
                 loader=self.progress_bar_callback.train_progress_bar,
                 data_devicer=data_devicer,
-                batch_pass=getattr(self.module, "train_batch_pass")
+                batch_pass=train_batch_pass
             )
             self.call("after_train_epoch_pass", self)
 
             if val_loader is not None:
                 self.variables.current_pass = "validation"
 
+                if not self.ddp:
+                    validation_batch_pass = getattr(self.module, "validation_batch_pass")
+                else:
+                    validation_batch_pass = getattr(self.module.module, "validation_batch_pass")
+
                 self.call("before_validation_epoch_pass", self)
                 self.epoch_pass(
                     loader=self.progress_bar_callback.val_progress_bar,
                     data_devicer=data_devicer,
-                    batch_pass=getattr(self.module, "validation_batch_pass")
+                    batch_pass=validation_batch_pass
                 )
                 self.call(f"after_validation_epoch_pass", self)
 
@@ -190,3 +229,4 @@ class Trainer:
             self._progress_bar = pbar 
         else:
             raise Exception("ERROR: pbar must be a ProgressBar")
+    

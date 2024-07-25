@@ -86,13 +86,3 @@ class ProgressBar(_ProgressBar):
             if trainer.variables.current_batch_idx % self.log_to_bar_every == 0:
                 append_tqdm_postfix(self.val_progress_bar, **self.postfix)
             self.postfix = {}
-
-
-
-
-
-
-
-
-
-

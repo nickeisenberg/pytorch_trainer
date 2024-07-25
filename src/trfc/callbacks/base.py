@@ -41,7 +41,7 @@ class Callback:
         if not atlease_one_callback_set:
             error_message = """ No callback was set. Ensure to set one of the 
             following:
-                - before_all_epoch
+                - on_fit_start
                 - before_train_epoch_pass
                 - before_train_batch_pass
                 - after_train_batch_pass

@@ -11,29 +11,6 @@ from torchvision.datasets import MNIST
 
 from trfc.trainer import Trainer
 from trfc.callbacks.progress_bar.progress_bar import ProgressBar
-from trfc.callbacks.base import Callback
-
-class DummyCallback(Callback):
-    def __init__(self):
-        super().__init__()
-    
-    def on_fit_start(self, trainer):
-        print("on_fit_start")
-
-    def before_train_epoch_pass(self, trainer):
-        print("before_train_epoch_pass")
-
-    def after_train_epoch_pass(self, trainer):
-        print("after_train_epoch_pass")
-
-    def before_validation_epoch_pass(self, trainer):
-        print("before_validation_epoch_pass")
-
-    def after_validation_epoch_pass(self, trainer):
-        print("after_validation_epoch_pass")
-
-    def on_fit_end(self, trainer):
-        print("on_fit_end")
 
 
 class Classifier(nn.Module):
@@ -54,7 +31,7 @@ class Classifier(nn.Module):
         x = self.relu(self.linear1(self.flatten(x)))
         return self.linear2(x)
 
-class TMod(nn.Module):
+class Module(nn.Module):
     def __init__(self, progress_bar):
         super().__init__()
 
@@ -100,35 +77,38 @@ class TMod(nn.Module):
         self.progress_bar.log("accuracy", accuracy)
         self.progress_bar.log("loss", loss.item())
 
-def loaders():
+def get_loaders():
     mnist = MNIST(os.path.expanduser("~/datasets/mnist"), transform=ToTensor())
     train_dataset = Subset(mnist, range(50000))
     val_dataset = Subset(mnist, range(50000, 60000))
     train_loader = DataLoader(
         train_dataset, batch_size=64, num_workers=19, shuffle=False, sampler=DistributedSampler(train_dataset)
     )
-    val_loader = DataLoader(
+    validation_loader = DataLoader(
         val_dataset, batch_size=64, shuffle=False, num_workers=19, sampler=DistributedSampler(val_dataset)
     )
-    return train_loader, val_loader
+    return train_loader, validation_loader
 
-def main():
-    init_process_group(backend="nccl")
-    train_loader, val_loader = loaders()
+def get_trainer():
     progress_bar = ProgressBar(log_to_bar_every=15)
-    module = TMod(progress_bar)
-    trainer = Trainer(
+    module = Module(progress_bar)
+    return Trainer(
         module, 
         device="gpu",
         ddp=True,
-        callbacks=[progress_bar, DummyCallback()]
+        callbacks=[progress_bar]
     )
+
+def main():
+    init_process_group(backend="nccl")
+    train_loader, validation_loader = get_loaders()
+    trainer = get_trainer()
     data_devicer = lambda batch, device: (batch[0].to(device), batch[1].to(device))
     trainer.fit(
         train_loader=train_loader, 
         num_epochs=2, 
         data_devicer=data_devicer,
-        val_loader=val_loader
+        validation_loader=validation_loader
     )
     destroy_process_group()
 

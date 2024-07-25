@@ -52,7 +52,7 @@ class Classifier(nn.Module):
         x = self.relu(self.linear1(self.flatten(x)))
         return self.linear2(x)
 
-class TMod(nn.Module):
+class Module(nn.Module):
     def __init__(self, progress_bar):
         super().__init__()
 
@@ -105,15 +105,15 @@ def loaders():
     train_loader = DataLoader(
         train_dataset, batch_size=64, num_workers=19, shuffle=True
     )
-    val_loader = DataLoader(
+    validation_loader = DataLoader(
         val_dataset, batch_size=64, shuffle=True, num_workers=19
     )
-    return train_loader, val_loader
+    return train_loader, validation_loader
 
 def get_trainer():
     progress_bar = ProgressBar(log_to_bar_every=15)
     dummy = DummyCallback()
-    module = TMod(progress_bar)
+    module = Module(progress_bar)
     trainer = Trainer(
         module, 
         device="gpu",
@@ -122,14 +122,16 @@ def get_trainer():
     )
     return trainer
 
-def main(trainer):
-    train_loader, val_loader = loaders()
+def main():
+    trainer = get_trainer()
+    train_loader, validation_loader = loaders()
     data_devicer = lambda batch, device: (batch[0].to(device), batch[1].to(device))
     trainer.fit(
         train_loader=train_loader, 
         num_epochs=2, 
         data_devicer=data_devicer,
-        val_loader=val_loader
+        validation_loader=validation_loader
     )
 
-main(get_trainer())
+if __name__ == "__main__":
+    main()

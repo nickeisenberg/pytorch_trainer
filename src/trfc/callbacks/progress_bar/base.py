@@ -18,10 +18,10 @@ class ProgressBar(Callback, ABC):
 
     @property
     @abstractmethod
-    def val_progress_bar(self) -> tqdm:
+    def validation_progress_bar(self) -> tqdm:
         pass
 
-    @val_progress_bar.setter
+    @validation_progress_bar.setter
     @abstractmethod
-    def val_progress_bar(self, pbar):
+    def validation_progress_bar(self, pbar):
         pass

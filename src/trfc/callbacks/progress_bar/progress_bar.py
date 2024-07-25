@@ -22,11 +22,7 @@ class ProgressBar(_ProgressBar):
 
         self._postfix = {}
         self._train_progress_bar = None
-        self._val_progress_bar = None
-
-    def log(self, name, value):
-        """Log values intra batch to be displayed to the tqdm bar"""
-        self.postfix[name] = value
+        self._validation_progress_bar = None
     
     @property
     def postfix(self):
@@ -53,28 +49,27 @@ class ProgressBar(_ProgressBar):
             raise Exception("ERROR: pbar must be a tqdm")
 
     @property
-    def val_progress_bar(self) -> tqdm:
-        if self._val_progress_bar is None:
-            raise Exception("ERROR: val_progress_bar called before set")
-        return self._val_progress_bar
+    def validation_progress_bar(self) -> tqdm:
+        if self._validation_progress_bar is None:
+            raise Exception("ERROR: validation_progress_bar called before set")
+        return self._validation_progress_bar
 
-    @val_progress_bar.setter
-    def val_progress_bar(self, pbar: tqdm):
+    @validation_progress_bar.setter
+    def validation_progress_bar(self, pbar: tqdm):
         if isinstance(pbar, tqdm):
-            self._val_progress_bar = pbar
+            self._validation_progress_bar = pbar
         else:
             raise Exception("ERROR: pbar must be a tqdm")
-    
-    def on_fit_start(self, trainer: Trainer):
-        self.train_loader = trainer.variables.train_loader
-        if trainer.variables.val_loader is not None:
-            self.val_loader = trainer.variables.val_loader
+
+    def log(self, name, value):
+        """Log values intra batch to be displayed to the tqdm bar"""
+        self.postfix[name] = value
 
     def before_train_epoch_pass(self, trainer: Trainer):
         self.train_progress_bar = tqdm(trainer.variables.train_loader, leave=True)
 
     def before_validation_epoch_pass(self, trainer: Trainer):
-        self.val_progress_bar = tqdm(trainer.variables.val_loader, leave=True)
+        self.validation_progress_bar = tqdm(trainer.variables.validation_loader, leave=True)
 
     def after_train_batch_pass(self, trainer: Trainer) -> None:
         if trainer.variables.current_batch_idx % self.log_to_bar_every == 0:
@@ -82,7 +77,7 @@ class ProgressBar(_ProgressBar):
         self.postfix = {}
 
     def after_validation_batch_pass(self, trainer: Trainer) -> None:
-        if self.val_progress_bar is not None:
+        if self.validation_progress_bar is not None:
             if trainer.variables.current_batch_idx % self.log_to_bar_every == 0:
-                append_tqdm_postfix(self.val_progress_bar, **self.postfix)
+                append_tqdm_postfix(self.validation_progress_bar, **self.postfix)
             self.postfix = {}

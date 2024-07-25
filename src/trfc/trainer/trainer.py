@@ -91,7 +91,7 @@ class Trainer:
 
         self.trainer_module = trainer_module 
         
-        self._callbacks = {
+        self._callbacks: dict[str, list[Callable]] = {
             "on_fit_start": [],
             "before_train_epoch_pass": [],
             "before_train_batch_pass": [],

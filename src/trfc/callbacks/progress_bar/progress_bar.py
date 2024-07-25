@@ -16,8 +16,10 @@ def append_tqdm_postfix(pbar: tqdm, **kwargs):
 class ProgressBar(_ProgressBar):
     """The progress bar"""
 
-    def __init__(self):
+    def __init__(self, log_to_bar_every: int = 100):
         super().__init__()
+        
+        self.log_to_bar_every = log_to_bar_every
 
         self._postfix = {}
         self._train_progress_bar = None
@@ -76,10 +78,12 @@ class ProgressBar(_ProgressBar):
         self.val_progress_bar = tqdm(trainer.variables.val_loader, leave=True)
 
     def after_train_batch_pass(self, trainer: Trainer) -> None:
-        append_tqdm_postfix(self.train_progress_bar, **self.postfix)
+        if trainer.variables.current_batch_idx % self.log_to_bar_every == 0:
+            append_tqdm_postfix(self.train_progress_bar, **self.postfix)
         self.postfix = {}
 
     def after_validation_batch_pass(self, trainer: Trainer) -> None:
         if self.val_progress_bar is not None:
-            append_tqdm_postfix(self.val_progress_bar, **self.postfix)
+            if trainer.variables.current_batch_idx % self.log_to_bar_every == 0:
+                append_tqdm_postfix(self.val_progress_bar, **self.postfix)
             self.postfix = {}

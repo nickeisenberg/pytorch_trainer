@@ -10,8 +10,8 @@ from ..callbacks.progress_bar.base import ProgressBar
 class Variables:
     def __init__(self):
         self._current_pass = None
-        self._current_epoch = None
-        self._current_batch_idx = None
+        self._current_epoch = -1
+        self._current_batch_idx = -1
         self._train_loader = None
         self._num_epochs = None
         self._val_loader = None
@@ -29,7 +29,7 @@ class Variables:
             raise Exception("ERROR: current_pass must be train, val or test.")
 
     @property
-    def current_epoch(self):
+    def current_epoch(self) -> int:
         return self._current_epoch
 
     @current_epoch.setter
@@ -40,7 +40,7 @@ class Variables:
             raise Exception("ERROR: current_epoch must be an int")
 
     @property
-    def current_batch_idx(self):
+    def current_batch_idx(self) -> int:
         return self._current_batch_idx
 
     @current_batch_idx.setter

@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader, Subset
 
 from torchvision.transforms import ToTensor
 from torchvision.datasets import MNIST
-from tqdm import tqdm
 
 from src.trfc.trainer import Trainer
 from src.trfc.callbacks.progress_bar.progress_bar import ProgressBar
@@ -82,6 +81,9 @@ train_loader = DataLoader(Subset(mnist, range(50000)), batch_size=64, num_worker
 val_loader = DataLoader(Subset(mnist, range(50000, 60000)), batch_size=64, num_workers=19)
 
 trainer_mod = TMod()
-trainer = Trainer(trainer_mod, callbacks=[progress_bar])
+trainer = Trainer(
+    trainer_mod, 
+    callbacks=[progress_bar]
+)
 
 trainer.fit(train_loader, 2, val_loader)

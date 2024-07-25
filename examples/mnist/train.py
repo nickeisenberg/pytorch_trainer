@@ -7,9 +7,10 @@ from torch.utils.data import DataLoader, Subset
 from torchvision.transforms import ToTensor
 from torchvision.datasets import MNIST
 
-from trfc.trainer import Trainer
-from trfc.callbacks.progress_bar.progress_bar import ProgressBar
-from trfc.callbacks.base import Callback
+from src.trfc.trainer import Trainer
+from src.trfc.callbacks.progress_bar.progress_bar import ProgressBar
+from src.trfc.callbacks.base import Callback
+
 
 class DummyCallback(Callback):
     def __init__(self):
@@ -32,7 +33,6 @@ class DummyCallback(Callback):
 
     def on_fit_end(self, trainer):
         print("on_fit_end")
-
 
 class Classifier(nn.Module):
     def __init__(self):
@@ -110,16 +110,20 @@ def loaders():
     )
     return train_loader, val_loader
 
-def main():
-    train_loader, val_loader = loaders()
+def get_trainer():
     progress_bar = ProgressBar(log_to_bar_every=15)
+    dummy = DummyCallback()
     module = TMod(progress_bar)
     trainer = Trainer(
         module, 
         device="gpu",
         ddp=False,
-        callbacks=[progress_bar, DummyCallback()]
+        callbacks=[progress_bar, dummy]
     )
+    return trainer
+
+def main(trainer):
+    train_loader, val_loader = loaders()
     data_devicer = lambda batch, device: (batch[0].to(device), batch[1].to(device))
     trainer.fit(
         train_loader=train_loader, 
@@ -128,5 +132,4 @@ def main():
         val_loader=val_loader
     )
 
-if __name__ == "__main__":
-    main()
+main(get_trainer())

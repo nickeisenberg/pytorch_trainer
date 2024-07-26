@@ -17,10 +17,12 @@ class Trainer:
                  module: nn.Module,
                  device: Literal["cpu", "gpu", "mps"] = "cpu",
                  ddp: bool = False,
-                 callbacks: list[Callback] | None = None):
+                 callbacks: list[Callback] | None = None,
+                 save_root: str = "./trainer_data"):
         
         self.ddp = ddp
         self.module, self.device = device_and_module_setup(module, device, ddp)
+        self.save_root = save_root
 
         self.rank = int(os.getenv("RANK", 0))
         self.local_rank = int(os.getenv("LOCAL_RANK", 0))

@@ -32,7 +32,7 @@ class Classifier(nn.Module):
         return self.linear2(x)
 
 class Module(nn.Module):
-    def __init__(self, progress_bar):
+    def __init__(self, progress_bar: ProgressBar):
         super().__init__()
 
         self.classifier = Classifier()
@@ -82,10 +82,12 @@ def get_loaders():
     train_dataset = Subset(mnist, range(50000))
     val_dataset = Subset(mnist, range(50000, 60000))
     train_loader = DataLoader(
-        train_dataset, batch_size=64, num_workers=19, shuffle=False, sampler=DistributedSampler(train_dataset)
+        train_dataset, batch_size=64, num_workers=19, 
+        shuffle=False, sampler=DistributedSampler(train_dataset)
     )
     validation_loader = DataLoader(
-        val_dataset, batch_size=64, shuffle=False, num_workers=19, sampler=DistributedSampler(val_dataset)
+        val_dataset, batch_size=64, shuffle=False, num_workers=19, 
+        sampler=DistributedSampler(val_dataset)
     )
     return train_loader, validation_loader
 

@@ -1,4 +1,5 @@
 from typing import Callable, Literal
+import os
 
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -17,8 +18,15 @@ class Trainer:
                  ddp: bool = False,
                  callbacks: list[Callback] | None = None):
         
-        self.ddp = ddp
         self.module, self.device = device_and_module_setup(module, device, ddp)
+
+        self.ddp = ddp
+        if self.ddp:
+            self.rank = int(os.environ["RANK"])
+            self.local_rank = int(os.environ["LOCAL_RANK"])
+        else:
+            self.rank = 0
+            self.local_rank = 0
         
         self._callbacks: dict[str, list[Callable]] = {
             "on_fit_start": [],
@@ -51,6 +59,7 @@ class Trainer:
 
         self.variables.train_loader = train_loader
         self.variables.num_epochs = num_epochs
+
         if validation_loader:
             self.variables.validation_loader = validation_loader
         
@@ -89,7 +98,9 @@ class Trainer:
 
         self.call("on_fit_end", self)
 
-    def epoch_pass(self, loader: tqdm, data_devicer: Callable | None, batch_pass: Callable):
+    def epoch_pass(self, loader: tqdm, data_devicer: Callable | None, 
+                   batch_pass: Callable):
+
         for batch_idx, data in enumerate(loader):
             if data_devicer:
                 data = data_devicer(data, self.device)

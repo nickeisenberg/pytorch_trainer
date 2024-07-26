@@ -9,8 +9,8 @@ from torch.distributed import init_process_group, destroy_process_group
 from torchvision.transforms import ToTensor
 from torchvision.datasets import MNIST
 
-from trfc.trainer import Trainer
-from trfc.callbacks.progress_bar.progress_bar import ProgressBar
+from trnr.trainer import Trainer
+from trnr.callbacks.progress_bar.progress_bar import ProgressBar
 
 
 class Classifier(nn.Module):

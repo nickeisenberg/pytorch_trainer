@@ -48,11 +48,10 @@ class CSVLogger(_Logger):
     def after_validation_epoch_pass(self, trainer: Trainer):
         pass
 
-    def _write_headers(self, which: str):
-        with open(f'{which}.csv', 'a', newline='',) as csvfile:
+    def _write_headers(self, path_to_csv: str):
+        with open(path_to_csv, 'a', newline='',) as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=list(self.epoch_log.keys()))
             writer.writeheader()
-        self._headers_written = True
 
     @property
     def train_log_path(self):

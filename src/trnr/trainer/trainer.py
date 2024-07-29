@@ -107,6 +107,9 @@ class Trainer:
             batch_pass(data, batch_idx)
             self.call(f"after_{self.variables.current_pass}_batch_pass", self)
 
+    def predict(self, *_):
+        raise Exception("ERROR: predict is not implemented yet")
+
     def call(self, where_at: str, *args, **kwargs):
         for callback in self.callbacks[where_at]:
             if callback:

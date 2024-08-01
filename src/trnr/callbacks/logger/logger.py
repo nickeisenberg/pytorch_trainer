@@ -6,6 +6,7 @@ from ...trainer import Trainer
 from .base import Logger as _Logger
 from ..utils import rank_zero_only
 
+
 class CSVLogger(_Logger):
     def __init__(self, log_root: str = "logs"):
         super().__init__()
@@ -13,6 +14,7 @@ class CSVLogger(_Logger):
         self.epoch_log = defaultdict(list)
 
         self.log_root = log_root 
+
         self._train_log_path = None
         self._validation_log_path = None
 
@@ -82,4 +84,3 @@ class CSVLogger(_Logger):
                 raise Exception(f"ERROR: {x} is not a string")
             else:
                 raise Exception(f"ERROR: {x} already exists.")
-

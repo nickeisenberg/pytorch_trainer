@@ -15,19 +15,19 @@ def increment_save_root(save_root: str):
     base_dir = save_root.split(os.sep)[-1]
     root_dir = os.path.join(*save_root.split(os.sep)[:-1])
     
-    if os.path.isdir(save_root):
+    is_dir = os.path.isdir(save_root)
+    while is_dir:
         if re.search(r"_\d+$", base_dir):
             num = int(base_dir.split("_")[-1])
             base_dir = base_dir.split("_")[0] + f"_{num + 1}"
             save_root = os.path.join(root_dir, base_dir)
-            increment_save_root(save_root)
+            is_dir = os.path.isdir(save_root)
         else:
-            save_root = os.path.join(root_dir, base_dir + "_1")
-            increment_save_root(save_root)
+            base_dir = base_dir + "_1"
+            save_root = os.path.join(root_dir, base_dir)
+            is_dir = os.path.isdir(save_root)
 
-    else:
-        os.makedirs(save_root)
-
+    return save_root
 
 def device_and_module_setup(module: nn.Module, 
                             device: Literal["cpu", "gpu", "mps"], 

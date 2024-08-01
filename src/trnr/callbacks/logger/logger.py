@@ -2,9 +2,11 @@ from collections import defaultdict
 import os
 import csv
 
-from ...trainer import Trainer
 from .base import Logger as _Logger
+
 from ..utils import rank_zero_only
+
+from ...trainer import Trainer
 
 
 class CSVLogger(_Logger):

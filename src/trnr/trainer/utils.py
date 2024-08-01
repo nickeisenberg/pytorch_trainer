@@ -12,6 +12,9 @@ def increment_save_root(save_root: str):
     if os.sep not in save_root:
         save_root = "./" + save_root
 
+    if save_root.startswith("~"):
+        save_root = os.path.expanduser(save_root)
+
     base_dir = save_root.split(os.sep)[-1]
     root_dir = os.path.join(*save_root.split(os.sep)[:-1])
     
@@ -28,6 +31,7 @@ def increment_save_root(save_root: str):
             is_dir = os.path.isdir(save_root)
 
     return save_root
+
 
 def device_and_module_setup(module: nn.Module, 
                             device: Literal["cpu", "gpu", "mps"], 

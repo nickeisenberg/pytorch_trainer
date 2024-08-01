@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from .utils import (
+    increment_save_root,
     device_and_module_setup, 
     Variables
 )
@@ -22,7 +23,7 @@ class Trainer:
         
         self.ddp = ddp
         self.module, self.device = device_and_module_setup(module, device, ddp)
-        self.save_root = save_root
+        self.save_root = increment_save_root(save_root)
 
         self.rank = int(os.getenv("RANK", 0))
         self.local_rank = int(os.getenv("LOCAL_RANK", 0))

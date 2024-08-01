@@ -11,6 +11,7 @@ from .utils import (
 )
 from ..callbacks.base import Callback
 from ..callbacks.progress_bar.base import ProgressBar
+from ..callbacks.logger.base import Logger 
 
 
 class Trainer:
@@ -46,6 +47,9 @@ class Trainer:
         # register all callbacks
         if callbacks:
             self._register_callbacks(callbacks)
+
+        self._logger = None
+        self._progress_bar = None
 
     @property
     def callbacks(self):
@@ -124,6 +128,8 @@ class Trainer:
             # handle special callbacks
             if isinstance(callback, ProgressBar):
                 self.progress_bar_callback = callback
+            elif isinstance(callback, Logger):
+                self.logger_callback = callback
 
     def _get_batch_pass(self):
         if not self.ddp:
@@ -138,7 +144,10 @@ class Trainer:
 
     @property 
     def progress_bar_callback(self) -> ProgressBar:
-        return self._progress_bar
+        if self._progress_bar is not None:
+            return self._progress_bar
+        else:
+            raise Exception("ERROR: pbar called before being set.")
 
     @progress_bar_callback.setter 
     def progress_bar_callback(self, pbar: ProgressBar):
@@ -146,3 +155,17 @@ class Trainer:
             self._progress_bar = pbar 
         else:
             raise Exception("ERROR: pbar must be a ProgressBar")
+
+    @property 
+    def logger_callback(self) -> Logger:
+        if self._logger is not None:
+            return self._logger
+        else:
+            raise Exception("ERROR: pbar called before being set.")
+
+    @logger_callback.setter 
+    def logger_callback(self, logger: Logger):
+        if isinstance(logger, Logger):
+            self._logger = logger 
+        else:
+            raise Exception("ERROR: logger must be a Logger")

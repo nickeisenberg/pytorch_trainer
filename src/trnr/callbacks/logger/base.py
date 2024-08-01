@@ -1,4 +1,3 @@
-from collections import defaultdict
 from abc import ABC
 from ..base import Callback
 

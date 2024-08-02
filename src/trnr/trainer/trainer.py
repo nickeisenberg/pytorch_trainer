@@ -1,3 +1,7 @@
+"""
+The Trainer
+"""
+
 from typing import Callable, Iterable, Literal
 import os
 
@@ -10,7 +14,7 @@ from .utils import (
     Variables
 )
 from ..callbacks.base import Callback
-from ..callbacks.progress_bar.base import ProgressBar
+from ..callbacks.data_iterator.base import DataIterator 
 from ..callbacks.logger.base import Logger 
 
 
@@ -48,8 +52,8 @@ class Trainer:
         if callbacks:
             self._register_callbacks(callbacks)
 
+        self._data_iterator = None
         self._logger = None
-        self._progress_bar = None
 
     @property
     def callbacks(self):
@@ -76,7 +80,7 @@ class Trainer:
 
             self.call("before_train_epoch_pass", self)
             self.epoch_pass(
-                data_iterator=self.progress_bar_callback.train_progress_bar,
+                data_iterator=self.data_iterator_callback.train_data_iterator,
                 data_devicer=data_devicer,
                 batch_pass=train_batch_pass
             )
@@ -89,7 +93,7 @@ class Trainer:
 
                 self.call("before_validation_epoch_pass", self)
                 self.epoch_pass(
-                    data_iterator=self.progress_bar_callback.validation_progress_bar,
+                    data_iterator=self.data_iterator_callback.validation_data_iterator,
                     data_devicer=data_devicer,
                     batch_pass=validation_batch_pass
                 )
@@ -97,7 +101,8 @@ class Trainer:
 
         self.call("on_fit_end", self)
 
-    def epoch_pass(self, data_iterator: Iterable, 
+    def epoch_pass(self, 
+                   data_iterator: Iterable, 
                    data_devicer: Callable | None, 
                    batch_pass: Callable):
 
@@ -126,8 +131,8 @@ class Trainer:
                 self._callbacks[k].append(v)
 
             # handle special callbacks
-            if isinstance(callback, ProgressBar):
-                self.progress_bar_callback = callback
+            if isinstance(callback, DataIterator):
+                self.data_iterator_callback = callback
             elif isinstance(callback, Logger):
                 self.logger_callback = callback
 
@@ -143,18 +148,18 @@ class Trainer:
         return batch_pass
 
     @property 
-    def progress_bar_callback(self) -> ProgressBar:
-        if self._progress_bar is not None:
-            return self._progress_bar
+    def data_iterator_callback(self) -> DataIterator:
+        if self._data_iterator is not None:
+            return self._data_iterator
         else:
-            raise Exception("ERROR: pbar called before being set.")
+            raise Exception("ERROR: data_iterator called before being set.")
 
-    @progress_bar_callback.setter 
-    def progress_bar_callback(self, pbar: ProgressBar):
-        if isinstance(pbar, ProgressBar):
-            self._progress_bar = pbar 
+    @data_iterator_callback.setter 
+    def data_iterator_callback(self, data_iterator: DataIterator):
+        if isinstance(data_iterator, DataIterator):
+            self._data_iterator = data_iterator 
         else:
-            raise Exception("ERROR: pbar must be a ProgressBar")
+            raise Exception("ERROR: data_iterator must be a DataIterator")
 
     @property 
     def logger_callback(self) -> Logger:

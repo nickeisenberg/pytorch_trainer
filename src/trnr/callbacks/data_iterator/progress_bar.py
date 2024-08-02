@@ -1,7 +1,8 @@
+from typing import cast
 from tqdm import tqdm
 
 from ..utils import rank_zero_only
-from .base import ProgressBar as _ProgressBar
+from .base import DataIterator
 from ...trainer import Trainer
 
 def tqdm_postfix_to_dictionary(postfix: str):
@@ -12,8 +13,8 @@ def append_tqdm_postfix(pbar: tqdm, **kwargs):
         {**tqdm_postfix_to_dictionary(pbar.postfix), **{k: v for k, v in kwargs.items()}}
     )
 
-class ProgressBar(_ProgressBar):
-    """The progress bar"""
+class ProgressBar(DataIterator):
+    """A progress bar DataIterator"""
 
     def __init__(self, log_to_bar_every: int = 100):
         super().__init__()
@@ -39,33 +40,38 @@ class ProgressBar(_ProgressBar):
 
     def before_train_epoch_pass(self, trainer: Trainer):
         if trainer.rank == 0:
-            self.train_progress_bar = tqdm(
+            self.train_data_iterator = tqdm(
                 trainer.variables.train_loader, leave=True
             )
         else:
-            self.train_progress_bar = tqdm(
+            self.train_data_iterator = tqdm(
                 trainer.variables.train_loader, disable=True
             )
 
     def before_validation_epoch_pass(self, trainer: Trainer):
         if trainer.rank == 0:
-            self.validation_progress_bar = tqdm(
+            self.validation_data_iterator = tqdm(
                 trainer.variables.validation_loader, leave=True
             )
         else:
-            self.validation_progress_bar = tqdm(
+            self.validation_data_iterator = tqdm(
                 trainer.variables.validation_loader, disable=True
             )
     
     @rank_zero_only
     def after_train_batch_pass(self, trainer: Trainer) -> None:
         if trainer.variables.current_batch_idx % self.log_to_bar_every == 0:
-            append_tqdm_postfix(self.train_progress_bar, **self.postfix)
+            append_tqdm_postfix(
+                cast(tqdm, self.train_data_iterator), 
+                **self.postfix)
         self.postfix = {}
     
     @rank_zero_only
     def after_validation_batch_pass(self, trainer: Trainer) -> None:
-        if self.validation_progress_bar is not None:
+        if self.validation_data_iterator is not None:
             if trainer.variables.current_batch_idx % self.log_to_bar_every == 0:
-                append_tqdm_postfix(self.validation_progress_bar, **self.postfix)
+                append_tqdm_postfix(
+                    cast(tqdm, self.validation_data_iterator), 
+                    **self.postfix
+                )
             self.postfix = {}

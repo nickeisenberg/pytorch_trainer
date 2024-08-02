@@ -3,9 +3,7 @@ import os
 import csv
 
 from .base import Logger as _Logger
-
 from ..utils import rank_zero_only
-
 from ...trainer import Trainer
 
 
@@ -20,7 +18,6 @@ class CSVLogger(_Logger):
     @rank_zero_only
     def log(self, name: str, value: float):
         self.batch_log[name] = value
-        self.epoch_log[name].append(value)
     
     @rank_zero_only
     def on_fit_start(self, trainer: Trainer):

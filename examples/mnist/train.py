@@ -8,7 +8,7 @@ from torchvision.transforms import ToTensor
 from torchvision.datasets import MNIST
 
 from src.trnr.trainer import Trainer
-from src.trnr.callbacks.progress_bar.progress_bar import ProgressBar
+from src.trnr.callbacks.data_iterator.progress_bar import ProgressBar
 from src.trnr.callbacks.base import Callback
 
 
@@ -135,3 +135,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
+
+
+
+
+

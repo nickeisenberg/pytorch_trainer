@@ -8,8 +8,9 @@ from torchvision.transforms import ToTensor
 from torchvision.datasets import MNIST
 
 from src.trnr.trainer import Trainer
-from src.trnr.callbacks.data_iterator.progress_bar import ProgressBar
 from src.trnr.callbacks.base import Callback
+from src.trnr.callbacks.data_iterator.progress_bar import ProgressBar
+from src.trnr.callbacks.logger.csv_logger import CSVLogger
 
 
 class DummyCallback(Callback):
@@ -53,7 +54,7 @@ class Classifier(nn.Module):
         return self.linear2(x)
 
 class Module(nn.Module):
-    def __init__(self, progress_bar):
+    def __init__(self, progress_bar: ProgressBar, logger: CSVLogger):
         super().__init__()
 
         self.classifier = Classifier()
@@ -62,6 +63,7 @@ class Module(nn.Module):
         self.optim = torch.optim.Adam(self.classifier.parameters(), lr=.0001)
 
         self.progress_bar = progress_bar 
+        self.logger = logger 
 
     def forward(self, x):
         return self.classifier(x)
@@ -84,6 +86,9 @@ class Module(nn.Module):
         self.progress_bar.log("accuracy", accuracy)
         self.progress_bar.log("loss", loss.item())
 
+        self.logger.log("loss", loss.item())
+        self.logger.log("accuracy", accuracy)
+
     def validation_batch_pass(self, batch, batch_idx):
         if self.classifier.training:
             self.classifier.eval() 
@@ -97,6 +102,9 @@ class Module(nn.Module):
 
         self.progress_bar.log("accuracy", accuracy)
         self.progress_bar.log("loss", loss.item())
+
+        self.logger.log("loss", loss.item())
+        self.logger.log("accuracy", accuracy)
 
 def loaders():
     mnist = MNIST(os.path.expanduser("~/datasets/mnist"), transform=ToTensor())
@@ -112,13 +120,15 @@ def loaders():
 
 def get_trainer():
     progress_bar = ProgressBar(log_to_bar_every=15)
+    logger = CSVLogger("logs")
     dummy = DummyCallback()
-    module = Module(progress_bar)
+    module = Module(progress_bar, logger)
     trainer = Trainer(
         module, 
         device="gpu",
         ddp=False,
-        callbacks=[progress_bar, dummy]
+        callbacks=[progress_bar, logger, dummy],
+        save_root="examples/mnist/mnist_classifier"
     )
     return trainer
 

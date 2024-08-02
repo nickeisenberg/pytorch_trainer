@@ -5,7 +5,7 @@ from ..base import Callback
 
 
 class DataIterator(Callback, ABC):
-    """ A name so that the Trainer knows what this callback is """
+    """A name so that the Trainer knows what this callback is"""
 
     def __init__(self):
         super().__init__()

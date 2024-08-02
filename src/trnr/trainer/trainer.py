@@ -47,13 +47,14 @@ class Trainer:
             "after_validation_epoch_pass": [],
             "on_fit_end": [],
         }
+        
+        # special callbacks
+        self._data_iterator = None
+        self._logger = None
 
         # register all callbacks
         if callbacks:
             self._register_callbacks(callbacks)
-
-        self._data_iterator = None
-        self._logger = None
 
     @property
     def callbacks(self):

@@ -127,7 +127,7 @@ def get_trainer():
         module, 
         device="gpu",
         ddp=False,
-        callbacks=[progress_bar, logger, dummy],
+        callbacks=[dummy, progress_bar, logger],
         save_root="examples/mnist/mnist_classifier"
     )
     return trainer

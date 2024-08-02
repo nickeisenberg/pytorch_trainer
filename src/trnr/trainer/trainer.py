@@ -129,14 +129,16 @@ class Trainer:
     def _register_callbacks(self, callbacks: list[Callback]):
         set_priorites = []
 
-        for callback in callbacks:
+        for i, callback in enumerate(callbacks):
+            if isinstance(callback.priority, int):
+                if not callback.priority in set_priorites:
+                    set_priorites.append(callback.priority)
+                else:
+                    raise Exception("ERROR: Multiple callbacks have been set with the same priority.")
+
             for k, v in callback.callbacks.items():
-                if callback.priority:
-                    if not callback.priority in set_priorites:
-                        set_priorites.append(callback.priority)
-                        self._callbacks[k].insert(callback.priority, v)
-                    else:
-                        raise Exception("ERROR: Multiple callbacks have been set with the same priority.")
+                if isinstance(callback.priority, int):
+                    self._callbacks[k].insert(callback.priority, v)
                 else:
                     self._callbacks[k].append(v)
 

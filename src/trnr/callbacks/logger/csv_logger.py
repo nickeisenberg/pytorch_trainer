@@ -9,8 +9,8 @@ from ...trainer import Trainer
 
 class CSVLogger(_Logger):
     """The csv logger"""
-    def __init__(self, log_root: str = "logs"):
-        super().__init__()
+    def __init__(self, log_root: str = "logs", priority=0):
+        super().__init__(priority=priority)
 
         self.log_root = log_root 
 

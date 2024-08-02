@@ -7,9 +7,12 @@ def _callback_not_implemented(*args, **kwargs):
 class Callback:
     """Handles all registered callbacks for Hooks."""
 
-    def __init__(self, supress_no_callback_warning=False):
+    def __init__(self,
+                 priorty: int | None = None,
+                 supress_no_callback_warning: bool = False):
         """Initializes a Callbacks object to manage registered event hooks."""
         
+        self.priority = priorty
         self.supress_no_callback_warning = supress_no_callback_warning
 
         self._callbacks = {
@@ -41,7 +44,7 @@ class Callback:
     
         if not self.supress_no_callback_warning:
             if not atlease_one_callback_set:
-                warning_message = """WARNING: No callback was set. Ensure to set one of the 
+                warning_message = """WARNING: No callback was set. Ensure to set one of the
                 following:
                     - on_fit_start
                     - before_train_epoch_pass

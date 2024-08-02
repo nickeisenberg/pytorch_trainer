@@ -127,13 +127,23 @@ class Trainer:
                 callback(*args, **kwargs)
 
     def _register_callbacks(self, callbacks: list[Callback]):
+        set_priorites = []
+
         for callback in callbacks:
             for k, v in callback.callbacks.items():
-                self._callbacks[k].append(v)
+                if callback.priority:
+                    if not callback.priority in set_priorites:
+                        set_priorites.append(callback.priority)
+                        self._callbacks[k].insert(callback.priority, v)
+                    else:
+                        raise Exception("ERROR: Multiple callbacks have been set with the same priority.")
+                else:
+                    self._callbacks[k].append(v)
 
             # handle special callbacks
             if isinstance(callback, DataIterator):
                 self.data_iterator_callback = callback
+
             elif isinstance(callback, Logger):
                 self.logger_callback = callback
 

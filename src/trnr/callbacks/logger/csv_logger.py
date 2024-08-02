@@ -14,10 +14,16 @@ class CSVLogger(_Logger):
         self.log_root = log_root 
 
         self.batch_log = defaultdict(float)
+        
+        # keep track of average epoch metrics to be used with a save best checkpoint feature
+        self.epoch_log = defaultdict(list)
+        self.train_log = defaultdict(list)
+        self.validation_log = defaultdict(list)
 
     @rank_zero_only
     def log(self, name: str, value: float):
         self.batch_log[name] = value
+        self.epoch_log[name].append(value)
     
     @rank_zero_only
     def on_fit_start(self, trainer: Trainer):
@@ -50,7 +56,9 @@ class CSVLogger(_Logger):
 
     @rank_zero_only
     def after_train_epoch_pass(self, trainer: Trainer):
-        pass
+        for key in self.epoch_log:
+            self.train_log[key].append(round(sum(self.epoch_log[key]) / len(self.epoch_log[key]), 4))
+        self.epoch_log = defaultdict(list)
 
     @rank_zero_only
     def before_validation_epoch_pass(self, trainer: Trainer):
@@ -68,4 +76,6 @@ class CSVLogger(_Logger):
 
     @rank_zero_only
     def after_validation_epoch_pass(self, trainer: Trainer):
-        pass
+        for key in self.epoch_log:
+            self.validation_log[key].append(round(sum(self.epoch_log[key]) / len(self.epoch_log[key]), 4))
+        self.epoch_log = defaultdict(list)

@@ -8,22 +8,22 @@ from ...trainer import Trainer
 
 
 class CSVLogger(_Logger):
+    """The csv logger"""
     def __init__(self, log_root: str = "logs"):
         super().__init__()
 
         self.log_root = log_root 
 
-        self.batch_log = defaultdict(float)
-        
-        # keep track of average epoch metrics to be used with a save best checkpoint feature
-        self.epoch_log = defaultdict(list)
-        self.train_log = defaultdict(list)
-        self.validation_log = defaultdict(list)
+        self.batch_history = defaultdict(float)
+
+        # Used to store epoch values to then update the train_log and/or validation_log
+        # at the end of each epoch
+        self.epoch_history = defaultdict(list)
 
     @rank_zero_only
     def log(self, name: str, value: float):
-        self.batch_log[name] = value
-        self.epoch_log[name].append(value)
+        self.batch_history[name] = value
+        self.epoch_history[name].append(value)
     
     @rank_zero_only
     def on_fit_start(self, trainer: Trainer):
@@ -47,18 +47,18 @@ class CSVLogger(_Logger):
     @rank_zero_only
     def after_train_batch_pass(self, trainer: Trainer):
         with open(self.train_log_path, "a", newline="") as csvf:
-            writer = csv.DictWriter(csvf, fieldnames=self.batch_log.keys())
+            writer = csv.DictWriter(csvf, fieldnames=self.batch_history.keys())
             if not self.train_headers_written:
                 _ = writer.writeheader()
                 self.train_headers_written = True
-            _ = writer.writerow(self.batch_log)
-        self.batch_log = defaultdict(float)
+            _ = writer.writerow(self.batch_history)
+        self.batch_history = defaultdict(float)
 
     @rank_zero_only
     def after_train_epoch_pass(self, trainer: Trainer):
-        for key in self.epoch_log:
-            self.train_log[key].append(round(sum(self.epoch_log[key]) / len(self.epoch_log[key]), 4))
-        self.epoch_log = defaultdict(list)
+        for key in self.epoch_history:
+            self.train_log[key].append(round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4))
+        self.epoch_history = defaultdict(list)
 
     @rank_zero_only
     def before_validation_epoch_pass(self, trainer: Trainer):
@@ -67,15 +67,15 @@ class CSVLogger(_Logger):
     @rank_zero_only
     def after_validation_batch_pass(self, trainer: Trainer):
         with open(self.validation_log_path, "a", newline="") as csvf:
-            writer = csv.DictWriter(csvf, fieldnames=self.batch_log.keys())
+            writer = csv.DictWriter(csvf, fieldnames=self.batch_history.keys())
             if not self.validation_headers_written:
                 _ = writer.writeheader()
                 self.validation_headers_written = True
-            _ = writer.writerow(self.batch_log)
-        self.batch_log = defaultdict(float)
+            _ = writer.writerow(self.batch_history)
+        self.batch_history = defaultdict(float)
 
     @rank_zero_only
     def after_validation_epoch_pass(self, trainer: Trainer):
-        for key in self.epoch_log:
-            self.validation_log[key].append(round(sum(self.epoch_log[key]) / len(self.epoch_log[key]), 4))
-        self.epoch_log = defaultdict(list)
+        for key in self.epoch_history:
+            self.validation_log[key].append(round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4))
+        self.epoch_history = defaultdict(list)

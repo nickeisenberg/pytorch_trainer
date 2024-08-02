@@ -24,7 +24,7 @@ class Trainer:
                  device: Literal["cpu", "gpu", "mps"] = "cpu",
                  ddp: bool = False,
                  callbacks: list[Callback] | None = None,
-                 save_root: str = "./trainer_data"):
+                 save_root: str = "./experiment"):
         
         self.ddp = ddp
         self.module, self.device = device_and_module_setup(module, device, ddp)

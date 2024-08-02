@@ -22,7 +22,7 @@ def increment_save_root(save_root: str):
     while is_dir:
         if re.search(r"_\d+$", base_dir):
             num = int(base_dir.split("_")[-1])
-            base_dir = base_dir.split("_")[0] + f"_{num + 1}"
+            base_dir = "_".join(base_dir.split("_")[0:-1]) + f"_{num + 1}"
             save_root = os.path.join(root_dir, base_dir)
             is_dir = os.path.isdir(save_root)
         else:

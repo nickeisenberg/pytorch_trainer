@@ -8,8 +8,8 @@ class Logger(Callback, ABC):
 
     def __init__(self, priority=0, supress_no_callback_warning: bool = False):
         super().__init__(priority, supress_no_callback_warning)
-        self._train_log = defaultdict(list)
-        self._validation_log = defaultdict(list)
+        self._train_log = defaultdict(list[float])
+        self._validation_log = defaultdict(list[float])
 
     @property
     def train_log(self):

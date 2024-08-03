@@ -11,6 +11,7 @@ from src.trnr.trainer import Trainer
 from src.trnr.callbacks.base import Callback
 from src.trnr.callbacks.data_iterator.progress_bar import ProgressBar
 from src.trnr.callbacks.logger.csv_logger import CSVLogger
+from src.trnr.callbacks.checkpoint.save_best_checkpoint import SaveBestCheckpoint
 
 
 class DummyCallback(Callback):
@@ -122,12 +123,13 @@ def get_trainer():
     progress_bar = ProgressBar(log_to_bar_every=15)
     logger = CSVLogger("logs")
     dummy = DummyCallback()
+    save_best_checkpoint = SaveBestCheckpoint("loss", "decrease", "loss", "decrease")
     module = Module(progress_bar, logger)
     trainer = Trainer(
         module, 
         device="gpu",
         ddp=False,
-        callbacks=[dummy, progress_bar, logger],
+        callbacks=[dummy, progress_bar, logger, save_best_checkpoint],
         save_root="examples/mnist/mnist_classifier"
     )
     return trainer

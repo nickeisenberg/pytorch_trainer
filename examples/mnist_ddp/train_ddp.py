@@ -10,7 +10,9 @@ from torchvision.transforms import ToTensor
 from torchvision.datasets import MNIST
 
 from trnr.trainer import Trainer
-from trnr.callbacks.progress_bar.progress_bar import ProgressBar
+from trnr.callbacks.data_iterator.progress_bar import ProgressBar
+from trnr.callbacks.logger.csv_logger import CSVLogger
+from trnr.callbacks.checkpoint.save_best_checkpoint import SaveBestCheckpoint
 
 
 class Classifier(nn.Module):
@@ -32,7 +34,7 @@ class Classifier(nn.Module):
         return self.linear2(x)
 
 class Module(nn.Module):
-    def __init__(self, progress_bar: ProgressBar):
+    def __init__(self, progress_bar: ProgressBar, logger: CSVLogger):
         super().__init__()
 
         self.classifier = Classifier()
@@ -41,6 +43,7 @@ class Module(nn.Module):
         self.optim = torch.optim.Adam(self.classifier.parameters(), lr=.0001)
 
         self.progress_bar = progress_bar 
+        self.logger = logger 
 
     def forward(self, x):
         return self.classifier(x)
@@ -63,6 +66,9 @@ class Module(nn.Module):
         self.progress_bar.log("accuracy", accuracy)
         self.progress_bar.log("loss", loss.item())
 
+        self.logger.log("loss", loss.item())
+        self.logger.log("accuracy", accuracy)
+
     def validation_batch_pass(self, batch, batch_idx):
         if self.classifier.training:
             self.classifier.eval() 
@@ -76,6 +82,9 @@ class Module(nn.Module):
 
         self.progress_bar.log("accuracy", accuracy)
         self.progress_bar.log("loss", loss.item())
+
+        self.logger.log("loss", loss.item())
+        self.logger.log("accuracy", accuracy)
 
 def get_loaders():
     mnist = MNIST(os.path.expanduser("~/datasets/mnist"), transform=ToTensor())
@@ -93,12 +102,15 @@ def get_loaders():
 
 def get_trainer():
     progress_bar = ProgressBar(log_to_bar_every=15)
-    module = Module(progress_bar)
+    logger = CSVLogger("logs")
+    save_best_checkpoint = SaveBestCheckpoint("loss", "decrease", "loss", "decrease")
+    module = Module(progress_bar, logger)
     return Trainer(
         module, 
         device="gpu",
         ddp=True,
-        callbacks=[progress_bar]
+        callbacks=[progress_bar, logger, save_best_checkpoint],
+        save_root="examples/mnist_ddp/mnist_classifier"
     )
 
 def main():

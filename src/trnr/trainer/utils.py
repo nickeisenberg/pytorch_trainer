@@ -32,7 +32,6 @@ def increment_save_root(save_root: str):
 
     return save_root
 
-
 def device_and_module_setup(module: nn.Module, 
                             device: Literal["cpu", "gpu", "mps"], 
                             ddp: bool):
@@ -59,7 +58,6 @@ def device_and_module_setup(module: nn.Module,
 
     else:
         raise Exception("ERROR: Device not supported.")
-
 
 class Variables:
     def __init__(self):

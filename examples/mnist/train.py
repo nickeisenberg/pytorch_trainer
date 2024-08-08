@@ -141,8 +141,9 @@ def main():
     trainer.fit(
         train_loader=train_loader, 
         num_epochs=2, 
-        data_devicer=data_devicer,
-        validation_loader=validation_loader
+        train_data_devicer=data_devicer,
+        validation_loader=validation_loader,
+        validation_data_devicer=data_devicer,
     )
 
 if __name__ == "__main__":

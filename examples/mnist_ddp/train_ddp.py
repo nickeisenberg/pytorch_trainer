@@ -120,9 +120,10 @@ def main():
     data_devicer = lambda batch, device: (batch[0].to(device), batch[1].to(device))
     trainer.fit(
         train_loader=train_loader, 
+        train_data_devicer=data_devicer,
         num_epochs=2, 
-        data_devicer=data_devicer,
-        validation_loader=validation_loader
+        validation_loader=validation_loader,
+        validation_data_devicer=data_devicer,
     )
     destroy_process_group()
 

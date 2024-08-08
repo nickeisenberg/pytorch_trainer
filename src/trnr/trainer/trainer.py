@@ -62,9 +62,10 @@ class Trainer:
 
     def fit(self, 
             train_loader: DataLoader,
-            num_epochs: int,
-            data_devicer: Callable | None = None,
-            validation_loader: DataLoader | None = None):
+            train_data_devicer: Callable | None = None,
+            num_epochs: int = 2,
+            validation_loader: DataLoader | None = None,
+            validation_data_devicer: Callable | None = None):
 
         self.variables.train_loader = train_loader
         self.variables.num_epochs = num_epochs
@@ -82,7 +83,7 @@ class Trainer:
             self.call("before_train_epoch_pass", self)
             self.epoch_pass(
                 data_iterator=self.data_iterator_callback.train_data_iterator,
-                data_devicer=data_devicer,
+                data_devicer=train_data_devicer,
                 batch_pass=train_batch_pass
             )
             self.call("after_train_epoch_pass", self)
@@ -95,7 +96,7 @@ class Trainer:
                 self.call("before_validation_epoch_pass", self)
                 self.epoch_pass(
                     data_iterator=self.data_iterator_callback.validation_data_iterator,
-                    data_devicer=data_devicer,
+                    data_devicer=validation_data_devicer,
                     batch_pass=validation_batch_pass
                 )
                 self.call(f"after_validation_epoch_pass", self)
@@ -109,6 +110,7 @@ class Trainer:
 
         for batch_idx, data in enumerate(data_iterator):
             self.variables.current_batch_idx = batch_idx
+
             if data_devicer:
                 data = data_devicer(data, self.device)
             else:

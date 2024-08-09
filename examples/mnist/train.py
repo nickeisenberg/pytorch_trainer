@@ -3,6 +3,7 @@ import os
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
+from torch.optim.lr_scheduler import ExponentialLR
 
 from torchvision.transforms import ToTensor
 from torchvision.datasets import MNIST
@@ -12,7 +13,7 @@ from src.trnr.callbacks.base import Callback
 from src.trnr.callbacks.data_iterator.progress_bar import ProgressBar
 from src.trnr.callbacks.logger.csv_logger import CSVLogger
 from src.trnr.callbacks.checkpoint.save_best_checkpoint import SaveBestCheckpoint
-
+from src.trnr.callbacks.lr_scheduler.lr_scheduler import LRScheduler
 
 class DummyCallback(Callback):
     def __init__(self):
@@ -24,8 +25,9 @@ class DummyCallback(Callback):
     def before_train_epoch_pass(self, trainer):
         print("before_train_epoch_pass")
 
-    def after_train_epoch_pass(self, trainer):
+    def after_train_epoch_pass(self, trainer: Trainer):
         print("after_train_epoch_pass")
+        print(trainer.module.optim.param_groups[0]["lr"])
 
     def before_validation_epoch_pass(self, trainer):
         print("before_validation_epoch_pass")
@@ -59,15 +61,18 @@ class Module(nn.Module):
         super().__init__()
 
         self.classifier = Classifier()
+        self.optim = torch.optim.Adam(self.classifier.parameters(), lr=.0001)
 
         self.cross_entropy = nn.CrossEntropyLoss()
-        self.optim = torch.optim.Adam(self.classifier.parameters(), lr=.0001)
 
         self.progress_bar = progress_bar 
         self.logger = logger 
 
     def forward(self, x):
         return self.classifier(x)
+
+    def optimizers(self):
+        return self.optim
 
     def train_batch_pass(self, batch, batch_idx):
         if not self.classifier.training:
@@ -125,11 +130,12 @@ def get_trainer():
     dummy = DummyCallback()
     save_best_checkpoint = SaveBestCheckpoint("loss", "decrease", "loss", "decrease")
     module = Module(progress_bar, logger)
+    scheduler = LRScheduler(ExponentialLR(module.optim, gamma=.8))
     trainer = Trainer(
         module, 
         device="gpu",
         ddp=False,
-        callbacks=[dummy, progress_bar, logger, save_best_checkpoint],
+        callbacks=[dummy, progress_bar, logger, save_best_checkpoint, scheduler],
         save_root="examples/mnist/mnist_classifier"
     )
     return trainer

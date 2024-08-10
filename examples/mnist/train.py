@@ -76,9 +76,6 @@ class Module(nn.Module):
     def forward(self, x):
         return self.classifier(x)
 
-    def optimizers(self):
-        return self.optim
-
     def train_batch_pass(self, batch, batch_idx):
         if not self.classifier.training:
             self.classifier.train() 
@@ -92,9 +89,9 @@ class Module(nn.Module):
         loss.backward()
         self.optim.step()
 
-        self.confusion_matrix.log(pred_labels, labs)
-
         accuracy = round(float((pred_labels == labs).sum() * 100 / len(labs)), 2)
+
+        self.confusion_matrix.log(pred_labels, labs)
 
         self.progress_bar.log("accuracy", accuracy)
         self.progress_bar.log("loss", loss.item())
@@ -110,10 +107,10 @@ class Module(nn.Module):
         preds = self.classifier(imgs)
         pred_labels = torch.argmax(preds, dim=1)
 
-        self.confusion_matrix.log(pred_labels, labs)
-
         loss = self.cross_entropy(preds, labs)
         accuracy = round(float((pred_labels == labs).sum() * 100 / len(labs)), 2)
+
+        self.confusion_matrix.log(pred_labels, labs)
 
         self.progress_bar.log("accuracy", accuracy)
         self.progress_bar.log("loss", loss.item())

@@ -1,7 +1,3 @@
-"""
-This is currently busted
-"""
-
 import os
 from matplotlib.figure import Figure
 import numpy as np
@@ -10,41 +6,45 @@ from matplotlib import colormaps
 import matplotlib.pyplot as plt
 from torch import Tensor
 
-from ..trainer.trainer import Trainer
-
-from .base import Callback
+from ...trainer.trainer import Trainer
+from ..base import Callback
+from ..utils import rank_zero_only
 
 
 class ConfusionMatrix(Callback):
-    def __init__(self, labels: list, save_root: str):
+    def __init__(self, labels: list, save_root: str = "metrics"):
+        super().__init__()
         self.labels = labels
 
         self.save_root = save_root
         
         self.predictions = []
         self.targets = []
-     
+    
+    @rank_zero_only
+    def on_fit_start(self, trainer: Trainer):
+        self.save_root = os.path.join(trainer.save_root, self.save_root)
+        if not os.path.isdir(self.save_root):
+            os.makedirs(self.save_root)
 
+    @rank_zero_only
     def log(self, predictions: Tensor, targets: Tensor):
         self.predictions += predictions.tolist()
         self.targets += targets.tolist()
 
+    @rank_zero_only
+    def after_train_epoch_pass(self, trainer: Trainer):
+        self.reset_state(
+            trainer.variables.current_pass, trainer.variables.current_epoch
+        )
 
-    def on_fit_start(self, trainer: Trainer, *args, **kwargs):
-        assert hasattr(trainer, "module")
-        assert hasattr(trainer, "current_pass")
-        assert hasattr(trainer, "current_epoch")
+    @rank_zero_only
+    def after_validation_epoch_pass(self, trainer: Trainer):
+        self.reset_state(
+            trainer.variables.current_pass, trainer.variables.current_epoch
+        )
 
-
-    def after_train_epoch_pass(self, trainer: Trainer, *args, **kwargs):
-        self.reset_state(trainer.current_pass, trainer.current_epoch)
-
-
-    def after_validation_epoch_pass(self, trainer: Trainer, *args, **kwargs):
-        self.reset_state(trainer.current_pass, trainer.current_epoch)
-
-
-    def reset_state(self, which, epoch, *args, **kwargs):
+    def reset_state(self, which, epoch):
         matrix = self.compute_confusion_matrix(self.targets, self.predictions)
         fig = self.make_confusion_matrix_fig(matrix, self.labels)
 

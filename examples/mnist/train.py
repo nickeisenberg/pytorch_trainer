@@ -14,6 +14,7 @@ from src.trnr.callbacks.data_iterator.progress_bar import ProgressBar
 from src.trnr.callbacks.logger.csv_logger import CSVLogger
 from src.trnr.callbacks.checkpoint.save_best_checkpoint import SaveBestCheckpoint
 from src.trnr.callbacks.lr_scheduler.lr_scheduler import LRScheduler
+from src.trnr.callbacks.metrics.confusion_matrix import ConfusionMatrix 
 
 class DummyCallback(Callback):
     def __init__(self):
@@ -57,7 +58,10 @@ class Classifier(nn.Module):
         return self.linear2(x)
 
 class Module(nn.Module):
-    def __init__(self, progress_bar: ProgressBar, logger: CSVLogger):
+    def __init__(self, 
+                 progress_bar: ProgressBar, 
+                 logger: CSVLogger,
+                 confusion_matrix: ConfusionMatrix):
         super().__init__()
 
         self.classifier = Classifier()
@@ -67,6 +71,7 @@ class Module(nn.Module):
 
         self.progress_bar = progress_bar 
         self.logger = logger 
+        self.confusion_matrix = confusion_matrix
 
     def forward(self, x):
         return self.classifier(x)
@@ -87,6 +92,8 @@ class Module(nn.Module):
         loss.backward()
         self.optim.step()
 
+        self.confusion_matrix.log(pred_labels, labs)
+
         accuracy = round(float((pred_labels == labs).sum() * 100 / len(labs)), 2)
 
         self.progress_bar.log("accuracy", accuracy)
@@ -102,6 +109,8 @@ class Module(nn.Module):
         imgs, labs = batch
         preds = self.classifier(imgs)
         pred_labels = torch.argmax(preds, dim=1)
+
+        self.confusion_matrix.log(pred_labels, labs)
 
         loss = self.cross_entropy(preds, labs)
         accuracy = round(float((pred_labels == labs).sum() * 100 / len(labs)), 2)
@@ -129,13 +138,14 @@ def get_trainer():
     logger = CSVLogger("logs")
     dummy = DummyCallback()
     save_best_checkpoint = SaveBestCheckpoint("loss", "decrease", "loss", "decrease")
-    module = Module(progress_bar, logger)
+    conf_mat = ConfusionMatrix([str(i) for i in range(10)])
+    module = Module(progress_bar, logger, conf_mat)
     scheduler = LRScheduler(ExponentialLR(module.optim, gamma=.8))
     trainer = Trainer(
         module, 
         device="gpu",
         ddp=False,
-        callbacks=[dummy, progress_bar, logger, save_best_checkpoint, scheduler],
+        callbacks=[dummy, progress_bar, logger, save_best_checkpoint, scheduler, conf_mat],
         save_root="examples/mnist/mnist_classifier"
     )
     return trainer

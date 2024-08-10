@@ -1,8 +1,8 @@
-from torch.optim.lr_scheduler import LRScheduler as _LRScheduler
+from torch.optim.lr_scheduler import LRScheduler
 from ..base import Callback
 
-class LRScheduler(Callback):
-    def __init__(self, scheduler: _LRScheduler):
+class BasicLRScheduler(Callback):
+    def __init__(self, scheduler: LRScheduler):
         super().__init__()
         self.scheduler = scheduler
 

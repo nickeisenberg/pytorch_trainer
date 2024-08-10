@@ -13,7 +13,7 @@ from src.trnr.callbacks.base import Callback
 from src.trnr.callbacks.data_iterator.progress_bar import ProgressBar
 from src.trnr.callbacks.logger.csv_logger import CSVLogger
 from src.trnr.callbacks.checkpoint.save_best_checkpoint import SaveBestCheckpoint
-from src.trnr.callbacks.lr_scheduler.lr_scheduler import LRScheduler
+from src.trnr.callbacks.lr_scheduler.basic_lr_scheduler import BasicLRScheduler 
 from src.trnr.callbacks.metrics.confusion_matrix import ConfusionMatrix 
 
 class DummyCallback(Callback):
@@ -137,7 +137,7 @@ def get_trainer():
     save_best_checkpoint = SaveBestCheckpoint("loss", "decrease", "loss", "decrease")
     conf_mat = ConfusionMatrix([str(i) for i in range(10)])
     module = Module(progress_bar, logger, conf_mat)
-    scheduler = LRScheduler(ExponentialLR(module.optim, gamma=.8))
+    scheduler = BasicLRScheduler(ExponentialLR(module.optim, gamma=.8))
     trainer = Trainer(
         module, 
         device="gpu",

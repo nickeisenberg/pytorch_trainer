@@ -6,8 +6,8 @@ from ..base import Callback
 class Logger(Callback, ABC):
     """Logger base class"""
 
-    def __init__(self, priority=0, supress_no_callback_warning: bool = False):
-        super().__init__(priority, supress_no_callback_warning)
+    def __init__(self, priority=0):
+        super().__init__(priority)
         self._train_log = defaultdict(list[float])
         self._validation_log = defaultdict(list[float])
 

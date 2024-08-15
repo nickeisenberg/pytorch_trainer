@@ -16,7 +16,7 @@ def increment_save_root(save_root: str):
         save_root = os.path.expanduser(save_root)
 
     base_dir = save_root.split(os.sep)[-1]
-    root_dir = os.path.join(*save_root.split(os.sep)[:-1])
+    root_dir = save_root.split(base_dir)[0]
     
     is_dir = os.path.isdir(save_root)
     while is_dir:

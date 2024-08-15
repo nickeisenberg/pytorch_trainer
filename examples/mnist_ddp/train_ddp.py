@@ -12,7 +12,7 @@ from torchvision.datasets import MNIST
 from trnr.trainer import Trainer
 from trnr.callbacks.data_iterator.progress_bar import ProgressBar
 from trnr.callbacks.logger.csv_logger import CSVLogger
-from trnr.callbacks.checkpoint.save_best_checkpoint import SaveBestCheckpoint
+from trnr.callbacks.save_best_checkpoint import SaveBestCheckpoint
 
 
 class Classifier(nn.Module):

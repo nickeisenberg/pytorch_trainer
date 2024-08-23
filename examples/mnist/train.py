@@ -12,32 +12,18 @@ from src.trnr.trainer import Trainer
 from src.trnr.callbacks.base import Callback
 from src.trnr.callbacks.data_iterator.progress_bar import ProgressBar
 from src.trnr.callbacks.logger.csv_logger import CSVLogger
-from src.trnr.callbacks.checkpoint.save_best_checkpoint import SaveBestCheckpoint
-from src.trnr.callbacks.lr_scheduler.basic_lr_scheduler import BasicLRScheduler 
-from src.trnr.callbacks.metrics.confusion_matrix import ConfusionMatrix 
+from src.trnr.callbacks.save_best_checkpoint import SaveBestCheckpoint
+from src.trnr.callbacks.basic_lr_scheduler import BasicLRScheduler 
+from trnr.callbacks.metrics import ClassificationSummary 
 
 class DummyCallback(Callback):
     def __init__(self):
         super().__init__()
-    
-    def on_fit_start(self, trainer):
-        print("on_fit_start")
-
-    def before_train_epoch_pass(self, trainer):
-        print("before_train_epoch_pass")
 
     def after_train_epoch_pass(self, trainer: Trainer):
         print("after_train_epoch_pass")
-        print(trainer.module.optim.param_groups[0]["lr"])
+        print("LR", trainer.module.optim.param_groups[0]["lr"])
 
-    def before_validation_epoch_pass(self, trainer):
-        print("before_validation_epoch_pass")
-
-    def after_validation_epoch_pass(self, trainer):
-        print("after_validation_epoch_pass")
-
-    def on_fit_end(self, trainer):
-        print("on_fit_end")
 
 class Classifier(nn.Module):
     def __init__(self):
@@ -61,7 +47,7 @@ class Module(nn.Module):
     def __init__(self, 
                  progress_bar: ProgressBar, 
                  logger: CSVLogger,
-                 confusion_matrix: ConfusionMatrix):
+                 classification_summary: ClassificationSummary):
         super().__init__()
 
         self.classifier = Classifier()
@@ -71,7 +57,7 @@ class Module(nn.Module):
 
         self.progress_bar = progress_bar 
         self.logger = logger 
-        self.confusion_matrix = confusion_matrix
+        self.classification_summary = classification_summary 
 
     def forward(self, x):
         return self.classifier(x)
@@ -91,7 +77,7 @@ class Module(nn.Module):
 
         accuracy = round(float((pred_labels == labs).sum() * 100 / len(labs)), 2)
 
-        self.confusion_matrix.log(pred_labels, labs)
+        self.classification_summary.log(pred_labels, labs)
 
         self.progress_bar.log("accuracy", accuracy)
         self.progress_bar.log("loss", loss.item())
@@ -110,7 +96,7 @@ class Module(nn.Module):
         loss = self.cross_entropy(preds, labs)
         accuracy = round(float((pred_labels == labs).sum() * 100 / len(labs)), 2)
 
-        self.confusion_matrix.log(pred_labels, labs)
+        self.classification_summary.log(pred_labels, labs)
 
         self.progress_bar.log("accuracy", accuracy)
         self.progress_bar.log("loss", loss.item())
@@ -119,7 +105,7 @@ class Module(nn.Module):
         self.logger.log("accuracy", accuracy)
 
 def loaders():
-    mnist = MNIST(os.path.expanduser("~/datasets/mnist"), transform=ToTensor())
+    mnist = MNIST(os.path.expanduser("~/Datasets/mnist"), transform=ToTensor(), download=True)
     train_dataset = Subset(mnist, range(50000))
     val_dataset = Subset(mnist, range(50000, 60000))
     train_loader = DataLoader(
@@ -135,14 +121,16 @@ def get_trainer():
     logger = CSVLogger("logs")
     dummy = DummyCallback()
     save_best_checkpoint = SaveBestCheckpoint("loss", "decrease", "loss", "decrease")
-    conf_mat = ConfusionMatrix([str(i) for i in range(10)])
-    module = Module(progress_bar, logger, conf_mat)
+    classification_summary = ClassificationSummary([str(i) for i in range(10)])
+    module = Module(progress_bar, logger, classification_summary)
     scheduler = BasicLRScheduler(ExponentialLR(module.optim, gamma=.8))
     trainer = Trainer(
         module, 
         device="gpu",
         ddp=False,
-        callbacks=[dummy, progress_bar, logger, save_best_checkpoint, scheduler, conf_mat],
+        callbacks=[
+            progress_bar, logger, save_best_checkpoint, scheduler, classification_summary 
+        ],
         save_root="examples/mnist/mnist_classifier"
     )
     return trainer

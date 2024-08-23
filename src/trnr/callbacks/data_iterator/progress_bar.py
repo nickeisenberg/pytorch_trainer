@@ -43,6 +43,7 @@ class ProgressBar(DataIterator):
             self.train_data_iterator = tqdm(
                 trainer.variables.train_loader, leave=True
             )
+            self.train_data_iterator.set_postfix(epoch=trainer.variables.current_epoch)
         else:
             self.train_data_iterator = tqdm(
                 trainer.variables.train_loader, disable=True
@@ -53,6 +54,7 @@ class ProgressBar(DataIterator):
             self.validation_data_iterator = tqdm(
                 trainer.variables.validation_loader, leave=True
             )
+            self.validation_data_iterator.set_postfix(epoch=trainer.variables.current_epoch)
         else:
             self.validation_data_iterator = tqdm(
                 trainer.variables.validation_loader, disable=True

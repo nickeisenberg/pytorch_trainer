@@ -107,7 +107,6 @@ class Trainer:
                    data_iterator: Iterable, 
                    data_devicer: Callable | None, 
                    batch_pass: Callable):
-
         for batch_idx, data in enumerate(data_iterator):
             self.variables.current_batch_idx = batch_idx
 

@@ -14,7 +14,7 @@ from src.trnr.callbacks.data_iterator.progress_bar import ProgressBar
 from src.trnr.callbacks.logger.csv_logger import CSVLogger
 from src.trnr.callbacks.save_best_checkpoint import SaveBestCheckpoint
 from src.trnr.callbacks.basic_lr_scheduler import BasicLRScheduler 
-from trnr.callbacks.metrics import ClassificationSummary 
+from src.trnr.callbacks.metrics import ClassificationSummary
 
 class DummyCallback(Callback):
     def __init__(self):
@@ -105,7 +105,7 @@ class Module(nn.Module):
         self.logger.log("accuracy", accuracy)
 
 def loaders():
-    mnist = MNIST(os.path.expanduser("~/Datasets/mnist"), transform=ToTensor(), download=True)
+    mnist = MNIST(os.path.expanduser("~/datasets/mnist"), transform=ToTensor(), download=True)
     train_dataset = Subset(mnist, range(50000))
     val_dataset = Subset(mnist, range(50000, 60000))
     train_loader = DataLoader(
@@ -121,7 +121,7 @@ def get_trainer():
     logger = CSVLogger("logs")
     dummy = DummyCallback()
     save_best_checkpoint = SaveBestCheckpoint("loss", "decrease", "loss", "decrease")
-    classification_summary = ClassificationSummary([str(i) for i in range(10)])
+    classification_summary = ClassificationSummary([i for i in range(10)])
     module = Module(progress_bar, logger, classification_summary)
     scheduler = BasicLRScheduler(ExponentialLR(module.optim, gamma=.8))
     trainer = Trainer(

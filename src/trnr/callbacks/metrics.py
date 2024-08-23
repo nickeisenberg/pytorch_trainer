@@ -2,16 +2,17 @@ import os
 import pandas as pd
 
 import numpy as np
-from numpy import ndarray
 
 import seaborn as sns
 import matplotlib.pyplot as plt
-from matplotlib import colormaps
-from matplotlib.figure import Figure
 
 from torch import Tensor
 
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import (
+    classification_report, 
+    confusion_matrix, 
+    accuracy_score,
+)
 
 from ..trainer.trainer import Trainer
 from .base import Callback
@@ -75,7 +76,7 @@ class ClassificationSummary(Callback):
             self.targets, self.predictions, labels=self.labels, zero_division=0, output_dict=True
         )
         report["accuracy"] = {
-            "precision": report["accuracy"],
+            "precision": accuracy_score(self.targets, self.predictions),
             "recall": np.nan,
             "f1-score": np.nan,
             "support": np.nan,
@@ -122,11 +123,3 @@ class ClassificationSummary(Callback):
             self.conf_mat_save_root, f"{which}_ep{epoch}.csv"
         )
         cm_df.to_csv(save_to)
-
-
-import numpy as np
-
-x = np.arange(9).reshape((-1, 3))
-
-
-

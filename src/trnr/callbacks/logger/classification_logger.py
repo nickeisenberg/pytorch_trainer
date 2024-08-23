@@ -2,47 +2,11 @@ from collections import defaultdict
 import os
 import csv
 
-import numpy as np
-import pandas as pd
 from torch import Tensor
-
-from sklearn.metrics import (
-    classification_report,
-    accuracy_score,
-    precision_score,
-    recall_score
-)
 
 from .base import Logger as _Logger
 from ..utils import rank_zero_only
 from ...trainer import Trainer
-
-
-def compute_weighted_precision_score(y_true, y_pred, labels):
-    return precision_score(
-        y_true=y_true, y_pred=y_pred, labels=labels, zero_division=0, average="weighted"
-    )
-
-def compute_weighted_recall_score(y_true, y_pred, labels):
-    return recall_score(
-        y_true=y_true, y_pred=y_pred, labels=labels, zero_division=0, average="weighted"
-    )
-
-def compute_classification_summary_csv(y_true, y_pred, labels):
-    report = classification_report(
-        y_true=y_true, y_pred=y_pred, labels=labels, zero_division=0, output_dict=True
-    )
-    report["accuracy"] = {
-        "precision": accuracy_score(y_true, y_pred),
-        "recall": np.nan,
-        "f1-score": np.nan,
-        "support": np.nan,
-    }
-    report = pd.DataFrame(report).transpose()
-    acc = report.loc["accuracy"]
-    report.drop("accuracy", inplace=True)
-    report = pd.concat((report, pd.DataFrame(acc).T), axis=0)
-    return report
 
 
 class ClassificationLogger(_Logger):

@@ -18,7 +18,6 @@ from ..trainer.trainer import Trainer
 from .base import Callback
 from .utils import rank_zero_only
 
-
 class ClassificationSummary(Callback):
     def __init__(self, labels: list, save_root: str = "metrics",
                  normalize_conf_mat: bool = False):

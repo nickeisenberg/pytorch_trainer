@@ -132,11 +132,7 @@ class ClassificationLogger(_Logger):
             report.to_csv(save_to)
             update_log_from_classification_report(self.train_log, report)
 
-        write_to_log(
-            self.train_log_path, 
-            self.train_log, 
-            not self.train_headers_written
-        )
+        _ = pd.DataFrame(self.train_log).to_csv(self.train_log_path)
         
         self.epoch_history = defaultdict(list)
         self.epoch_targets, self.epoch_predictions = torch.tensor([]), torch.tensor([])
@@ -178,6 +174,10 @@ class ClassificationLogger(_Logger):
             )
             cm_csv.to_csv(save_to)
 
+            save_to = os.path.join(
+                self.report_root, 
+                f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.csv"
+            )
             report = compute_classification_report_csv(
                 y_true=self.epoch_targets, y_pred=self.epoch_predictions,
                 labels=self.labels
@@ -185,11 +185,7 @@ class ClassificationLogger(_Logger):
             report.to_csv(save_to)
             update_log_from_classification_report(self.validation_log, report)
 
-        write_to_log(
-            self.validation_log_path, 
-            self.validation_log, 
-            not self.validation_headers_written
-        )
+        _ = pd.DataFrame(self.validation_log).to_csv(self.validation_log_path)
         
         self.epoch_history = defaultdict(list)
         self.epoch_targets, self.epoch_predictions = torch.tensor([]), torch.tensor([])
@@ -222,7 +218,3 @@ def update_log_from_classification_report(history: dict[str, list[float]],
             if np.isnan(value):
                 continue
             history[key].append(value)
-
-
-
-

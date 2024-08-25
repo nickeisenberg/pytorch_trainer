@@ -42,8 +42,12 @@ class ClassificationLogger(_Logger):
 
     @rank_zero_only
     def log_targs_and_preds(self, targets: Tensor, predictions: Tensor):
-        self.epoch_targets = torch.hstack((self.epoch_targets, targets))
-        self.epoch_predictions = torch.hstack((self.epoch_predictions, predictions))
+        self.epoch_targets = torch.hstack(
+            (self.epoch_targets, targets.detach().to("cpu"))
+        )
+        self.epoch_predictions = torch.hstack(
+            (self.epoch_predictions, predictions.detach().to("cpu"))
+        )
     
 
     @rank_zero_only
@@ -65,18 +69,18 @@ class ClassificationLogger(_Logger):
         )
         self.train_headers_written = False
 
+        self.train_all_log_path = os.path.join(
+            self.log_root, f"train_all.csv"
+        )
+        self.train_all_headers_written = False
+
         self.validation_log_path = os.path.join(
             self.log_root, f"validation.csv"
         )
         self.validation_headers_written = False
 
-        self.train_all_log_path = os.path.join(
-            self.log_root, f"train_item.csv"
-        )
-        self.train_all_headers_written = False
-
         self.validation_all_log_path = os.path.join(
-            self.log_root, f"validation_item.csv"
+            self.log_root, f"validation_all.csv"
         )
         self.validation_all_headers_written = False
 
@@ -99,7 +103,7 @@ class ClassificationLogger(_Logger):
                 round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4)
             )
 
-        if self.epoch_targets and self.epoch_predictions:
+        if len(self.epoch_targets) > 0:
             cm_fig, cm_csv = compute_confusion_matrix_fig_and_csv(
                 y_true=self.epoch_targets, y_pred=self.epoch_predictions,
                 labels=self.labels, normalize=True
@@ -112,15 +116,20 @@ class ClassificationLogger(_Logger):
             cm_fig.savefig(save_to)
 
             save_to = os.path.join(
-                self.report_root, 
+                self.conf_mat_root, 
                 f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.csv"
             )
             cm_csv.to_csv(save_to)
 
+            save_to = os.path.join(
+                self.report_root, 
+                f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.csv"
+            )
             report = compute_classification_report_csv(
                 y_true=self.epoch_targets, y_pred=self.epoch_predictions,
                 labels=self.labels
             )
+            report.to_csv(save_to)
             update_log_from_classification_report(self.train_log, report)
 
         write_to_log(
@@ -151,7 +160,7 @@ class ClassificationLogger(_Logger):
                 round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4)
             )
 
-        if self.epoch_targets and self.epoch_predictions:
+        if len(self.epoch_targets) > 0:
             cm_fig, cm_csv = compute_confusion_matrix_fig_and_csv(
                 y_true=self.epoch_targets, y_pred=self.epoch_predictions,
                 labels=self.labels, normalize=True
@@ -164,7 +173,7 @@ class ClassificationLogger(_Logger):
             cm_fig.savefig(save_to)
 
             save_to = os.path.join(
-                self.report_root, 
+                self.conf_mat_root, 
                 f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.csv"
             )
             cm_csv.to_csv(save_to)
@@ -173,6 +182,7 @@ class ClassificationLogger(_Logger):
                 y_true=self.epoch_targets, y_pred=self.epoch_predictions,
                 labels=self.labels
             )
+            report.to_csv(save_to)
             update_log_from_classification_report(self.validation_log, report)
 
         write_to_log(
@@ -193,7 +203,9 @@ def write_to_log(path: str, history: dict, write_headers: bool):
         _ = writer.writerow(history)
 
 
-def update_log_from_classification_report(history: dict, report: pd.DataFrame):
+def update_log_from_classification_report(history: dict[str, list[float]], 
+                                          report: pd.DataFrame
+    ):
     cols_to_check = [
         "precision", "recall", "f1-score"
     ]
@@ -209,4 +221,8 @@ def update_log_from_classification_report(history: dict, report: pd.DataFrame):
             value = report.loc[ind][col]
             if np.isnan(value):
                 continue
-            history[key] = value
+            history[key].append(value)
+
+
+
+

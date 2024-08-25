@@ -54,3 +54,13 @@ def compute_confusion_matrix_fig_and_csv(y_true, y_pred, labels, normalize: bool
     plt.ylabel('True Label')
 
     return fig, cm_df
+
+if __name__ == "__main__":
+    pass
+
+import torch
+y_true = torch.tensor([1, 2, 3, 4])
+y_pred = torch.tensor([2, 2, 3, 3])
+labels = torch.tensor([1, 2, 3, 4])
+
+compute_classification_report_csv(y_true, y_pred, labels)

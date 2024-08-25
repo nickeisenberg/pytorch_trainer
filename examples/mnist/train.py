@@ -42,6 +42,7 @@ class Classifier(nn.Module):
         x = self.relu(self.linear1(self.flatten(x)))
         return self.linear2(x)
 
+
 class Module(nn.Module):
     def __init__(self, 
                  progress_bar: ProgressBar, 
@@ -76,14 +77,14 @@ class Module(nn.Module):
         self.logger.log_targs_and_preds(targets=labs, predictions=pred_labels)
         
         num_correct = (self.logger.epoch_predictions == self.logger.epoch_targets).sum()
-        accuracy = round(float(num_correct * 100 / len(labs)), 2)
+        accuracy = round(float(num_correct * 100 / len(self.logger.epoch_predictions)), 2)
 
         avg_loss = sum(self.logger.epoch_history["loss"])
         avg_loss /= len(self.logger.epoch_history["loss"])
         avg_loss = round(avg_loss * 100, 2)
 
         self.progress_bar.log("avg_loss", avg_loss)
-        self.progress_bar.log("accuracy", accuracy)
+        self.progress_bar.log("acc", accuracy)
 
 
     def validation_batch_pass(self, batch, batch_idx):
@@ -99,14 +100,14 @@ class Module(nn.Module):
         self.logger.log_targs_and_preds(targets=labs, predictions=pred_labels)
 
         num_correct = (self.logger.epoch_predictions == self.logger.epoch_targets).sum()
-        accuracy = round(float(num_correct * 100 / len(labs)), 2)
+        accuracy = round(float(num_correct * 100 / len(self.logger.epoch_predictions)), 2)
 
         avg_loss = sum(self.logger.epoch_history["loss"])
         avg_loss /= len(self.logger.epoch_history["loss"])
         avg_loss = round(avg_loss * 100, 2)
 
         self.progress_bar.log("avg_loss", avg_loss)
-        self.progress_bar.log("accuracy", accuracy)
+        self.progress_bar.log("acc", accuracy)
 
 
 def loaders():
@@ -123,18 +124,17 @@ def loaders():
 
 def get_trainer():
     progress_bar = ProgressBar(log_to_bar_every=15)
-    logger = CSVLogger("logs")
+    logger = ClassificationLogger(labels=list(range(10)))
     dummy = DummyCallback()
     save_best_checkpoint = SaveBestCheckpoint("loss", "decrease", "loss", "decrease")
-    classification_summary = ClassificationSummary([i for i in range(10)])
-    module = Module(progress_bar, logger, classification_summary)
+    module = Module(progress_bar, logger)
     scheduler = BasicLRScheduler(ExponentialLR(module.optim, gamma=.8))
     trainer = Trainer(
         module, 
         device="gpu",
         ddp=False,
         callbacks=[
-            progress_bar, logger, save_best_checkpoint, scheduler, classification_summary 
+            progress_bar, logger, save_best_checkpoint, scheduler
         ],
         save_root="examples/mnist/mnist_classifier"
     )

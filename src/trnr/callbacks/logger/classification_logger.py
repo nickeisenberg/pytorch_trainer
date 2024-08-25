@@ -4,6 +4,7 @@ import csv
 import pandas as pd
 import numpy as np
 
+import torch
 from torch import Tensor
 
 from .base import Logger as _Logger
@@ -29,8 +30,8 @@ class ClassificationLogger(_Logger):
         self.batch_history = defaultdict(float)
         self.epoch_history = defaultdict(list)
 
-        self.epoch_predictions = []
-        self.epoch_targets = []
+        self.epoch_targets = torch.tensor([])
+        self.epoch_predictions = torch.tensor([])
 
 
     @rank_zero_only
@@ -41,8 +42,8 @@ class ClassificationLogger(_Logger):
 
     @rank_zero_only
     def log_targs_and_preds(self, targets: Tensor, predictions: Tensor):
-        self.epoch_targets += targets.tolist()
-        self.epoch_predictions += predictions.tolist()
+        self.epoch_targets = torch.hstack((self.epoch_targets, targets))
+        self.epoch_predictions = torch.hstack((self.epoch_predictions, predictions))
     
 
     @rank_zero_only
@@ -129,7 +130,7 @@ class ClassificationLogger(_Logger):
         )
         
         self.epoch_history = defaultdict(list)
-        self.epoch_targets, self.epoch_predictions = [], []
+        self.epoch_targets, self.epoch_predictions = torch.tensor([]), torch.tensor([])
     
 
     @rank_zero_only
@@ -181,7 +182,7 @@ class ClassificationLogger(_Logger):
         )
         
         self.epoch_history = defaultdict(list)
-        self.epoch_targets, self.epoch_predictions = [], []
+        self.epoch_targets, self.epoch_predictions = torch.tensor([]), torch.tensor([])
 
 
 def write_to_log(path: str, history: dict, write_headers: bool):

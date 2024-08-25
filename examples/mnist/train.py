@@ -11,10 +11,9 @@ from torchvision.datasets import MNIST
 from src.trnr.trainer import Trainer
 from src.trnr.callbacks.base import Callback
 from src.trnr.callbacks.data_iterator.progress_bar import ProgressBar
-from src.trnr.callbacks.logger.csv_logger import CSVLogger
 from src.trnr.callbacks.save_best_checkpoint import SaveBestCheckpoint
 from src.trnr.callbacks.basic_lr_scheduler import BasicLRScheduler 
-from src.trnr.callbacks.metrics import ClassificationSummary
+from src.trnr.callbacks.logger.classification_logger import ClassificationLogger
 
 class DummyCallback(Callback):
     def __init__(self):
@@ -46,8 +45,7 @@ class Classifier(nn.Module):
 class Module(nn.Module):
     def __init__(self, 
                  progress_bar: ProgressBar, 
-                 logger: CSVLogger,
-                 classification_summary: ClassificationSummary):
+                 logger: ClassificationLogger):
         super().__init__()
 
         self.classifier = Classifier()
@@ -57,7 +55,6 @@ class Module(nn.Module):
 
         self.progress_bar = progress_bar 
         self.logger = logger 
-        self.classification_summary = classification_summary 
 
     def forward(self, x):
         return self.classifier(x)
@@ -75,15 +72,19 @@ class Module(nn.Module):
         loss.backward()
         self.optim.step()
 
-        accuracy = round(float((pred_labels == labs).sum() * 100 / len(labs)), 2)
+        self.logger.log_item("loss", loss.item())
+        self.logger.log_targs_and_preds(targets=labs, predictions=pred_labels)
+        
+        num_correct = (self.logger.epoch_predictions == self.logger.epoch_targets).sum()
+        accuracy = round(float(num_correct * 100 / len(labs)), 2)
 
-        self.classification_summary.log(pred_labels, labs)
+        avg_loss = sum(self.logger.epoch_history["loss"])
+        avg_loss /= len(self.logger.epoch_history["loss"])
+        avg_loss = round(avg_loss * 100, 2)
 
+        self.progress_bar.log("avg_loss", avg_loss)
         self.progress_bar.log("accuracy", accuracy)
-        self.progress_bar.log("loss", loss.item())
 
-        self.logger.log("loss", loss.item())
-        self.logger.log("accuracy", accuracy)
 
     def validation_batch_pass(self, batch, batch_idx):
         if self.classifier.training:
@@ -92,17 +93,21 @@ class Module(nn.Module):
         imgs, labs = batch
         preds = self.classifier(imgs)
         pred_labels = torch.argmax(preds, dim=1)
-
         loss = self.cross_entropy(preds, labs)
-        accuracy = round(float((pred_labels == labs).sum() * 100 / len(labs)), 2)
 
-        self.classification_summary.log(pred_labels, labs)
+        self.logger.log_item("loss", loss.item())
+        self.logger.log_targs_and_preds(targets=labs, predictions=pred_labels)
 
+        num_correct = (self.logger.epoch_predictions == self.logger.epoch_targets).sum()
+        accuracy = round(float(num_correct * 100 / len(labs)), 2)
+
+        avg_loss = sum(self.logger.epoch_history["loss"])
+        avg_loss /= len(self.logger.epoch_history["loss"])
+        avg_loss = round(avg_loss * 100, 2)
+
+        self.progress_bar.log("avg_loss", avg_loss)
         self.progress_bar.log("accuracy", accuracy)
-        self.progress_bar.log("loss", loss.item())
 
-        self.logger.log("loss", loss.item())
-        self.logger.log("accuracy", accuracy)
 
 def loaders():
     mnist = MNIST(os.path.expanduser("~/datasets/mnist"), transform=ToTensor(), download=True)

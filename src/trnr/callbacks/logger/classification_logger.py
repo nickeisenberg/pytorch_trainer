@@ -1,6 +1,8 @@
 from collections import defaultdict
 import os
 import csv
+import pandas as pd
+import numpy as np
 
 from torch import Tensor
 
@@ -8,7 +10,6 @@ from .base import Logger as _Logger
 from ...metrics import (
     compute_confusion_matrix_fig_and_csv,
     compute_classification_report_csv, 
-    update_history_from_classification_report
 )
 from ..utils import rank_zero_only
 from ...trainer import Trainer
@@ -17,8 +18,7 @@ from ...trainer import Trainer
 class ClassificationLogger(_Logger):
     """The logger with functionality suited for classification models"""
     def __init__(self, labels: list[int], log_root: str = "logs", 
-                 metrics_root: str = "metrics", 
-                 priority=0):
+                 metrics_root: str = "metrics", priority=0):
         super().__init__(priority=priority)
         
         self.labels = labels
@@ -69,22 +69,26 @@ class ClassificationLogger(_Logger):
         )
         self.validation_headers_written = False
 
-        self.train_item_log_path = os.path.join(
+        self.train_all_log_path = os.path.join(
             self.log_root, f"train_item.csv"
         )
-        self.train_item_headers_written = False
+        self.train_all_headers_written = False
 
-        self.validation_item_log_path = os.path.join(
+        self.validation_all_log_path = os.path.join(
             self.log_root, f"validation_item.csv"
         )
-        self.validation_item_headers_written = False
+        self.validation_all_headers_written = False
 
 
     @rank_zero_only
     def after_train_batch_pass(self, trainer: Trainer):
-        self.batch_history, self.train_item_headers_written = write_to_item_log(
-            self.train_log_path, self.batch_history, self.train_item_headers_written
+        write_to_log(
+            self.train_all_log_path, 
+            self.batch_history, 
+            not self.train_all_headers_written
         )
+        self.train_all_headers_written = True
+        self.batch_history = defaultdict(float)
 
 
     @rank_zero_only
@@ -116,48 +120,92 @@ class ClassificationLogger(_Logger):
                 y_true=self.epoch_targets, y_pred=self.epoch_predictions,
                 labels=self.labels
             )
-            update_history_from_classification_report(self.train_log, report)
+            update_log_from_classification_report(self.train_log, report)
+
+        write_to_log(
+            self.train_log_path, 
+            self.train_log, 
+            not self.train_headers_written
+        )
         
-        self.epoch_targets, self.epoch_predictions = [], []
         self.epoch_history = defaultdict(list)
+        self.epoch_targets, self.epoch_predictions = [], []
+    
 
     @rank_zero_only
-    def before_validation_epoch_pass(self, trainer: Trainer):
-        self._headers_written = False
-    
-    @rank_zero_only
     def after_validation_batch_pass(self, trainer: Trainer):
-        with open(self.validation_log_path, "a", newline="") as csvf:
-            writer = csv.DictWriter(csvf, fieldnames=self.batch_history.keys())
-            if not self.validation_headers_written:
-                _ = writer.writeheader()
-                self.validation_headers_written = True
-            _ = writer.writerow(self.batch_history)
+        write_to_log(
+            self.validation_all_log_path, 
+            self.batch_history, 
+            not self.validation_all_headers_written
+        )
+        self.validation_all_headers_written = True
         self.batch_history = defaultdict(float)
+
 
     @rank_zero_only
     def after_validation_epoch_pass(self, trainer: Trainer):
         for key in self.epoch_history:
-            self.validation_log[key].append(round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4))
-        self.epoch_history = defaultdict(list)
+            self.validation_log[key].append(
+                round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4)
+            )
 
+        if self.epoch_targets and self.epoch_predictions:
+            cm_fig, cm_csv = compute_confusion_matrix_fig_and_csv(
+                y_true=self.epoch_targets, y_pred=self.epoch_predictions,
+                labels=self.labels, normalize=True
+            )
+
+            save_to = os.path.join(
+                self.conf_mat_root, 
+                f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.png"
+            )
+            cm_fig.savefig(save_to)
+
+            save_to = os.path.join(
+                self.report_root, 
+                f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.csv"
+            )
+            cm_csv.to_csv(save_to)
+
+            report = compute_classification_report_csv(
+                y_true=self.epoch_targets, y_pred=self.epoch_predictions,
+                labels=self.labels
+            )
+            update_log_from_classification_report(self.validation_log, report)
+
+        write_to_log(
+            self.validation_log_path, 
+            self.validation_log, 
+            not self.validation_headers_written
+        )
+        
+        self.epoch_history = defaultdict(list)
+        self.epoch_targets, self.epoch_predictions = [], []
 
 
 def write_to_log(path: str, history: dict, write_headers: bool):
     with open(path, "a", newline="") as csvf:
         writer = csv.DictWriter(csvf, fieldnames=history.keys())
-        if not write_headers:
+        if write_headers:
             _ = writer.writeheader()
-            write_headers = True
         _ = writer.writerow(history)
-    history = defaultdict(float)
-    return history, write_headers
 
 
+def update_log_from_classification_report(history: dict, report: pd.DataFrame):
+    cols_to_check = [
+        "precision", "recall", "f1-score"
+    ]
+    inds_to_check = ["micro avg", "macro avg", "weighted avg", "accuracy"]
 
-
-
-
-
-
-
+    inds = np.intersect1d(report.index.tolist(), inds_to_check).tolist()
+    cols = np.intersect1d(report.columns.tolist(), cols_to_check).tolist()
+    for col in cols:
+        for ind in inds:
+            key = f"{col}_{ind}".replace(" ", "-")
+            if "accuracy" in key:
+                key = "accuracy"
+            value = report.loc[ind][col]
+            if np.isnan(value):
+                continue
+            history[key] = value

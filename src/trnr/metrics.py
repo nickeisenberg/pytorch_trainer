@@ -10,7 +10,7 @@ from sklearn.metrics import (
 )
 
 
-def compute_classification_report_csv(y_true, y_pred, labels, **kwargs):
+def compute_classification_report_csv(y_true, y_pred, labels):
     report = classification_report(
         y_true=y_true, y_pred=y_pred, labels=labels, zero_division=0, output_dict=True
     )
@@ -26,7 +26,7 @@ def compute_classification_report_csv(y_true, y_pred, labels, **kwargs):
     report = pd.concat((report, pd.DataFrame(acc).T), axis=0)
     return report
 
-def compute_confusion_matrix_fig_and_csv(y_true, y_pred, labels, normalize: bool, **kwargs):
+def compute_confusion_matrix_fig_and_csv(y_true, y_pred, labels, normalize: bool):
     cm = confusion_matrix(y_true=y_true, y_pred=y_pred, labels=labels)
     cm_df = pd.DataFrame(cm, index=labels, columns=labels)
 
@@ -54,35 +54,3 @@ def compute_confusion_matrix_fig_and_csv(y_true, y_pred, labels, normalize: bool
     plt.ylabel('True Label')
 
     return fig, cm_df
-
-def update_history_from_classification_report(history: dict, report: pd.DataFrame):
-    cols_to_check = [
-        "precision", "recall", "f1-score"
-    ]
-    inds_to_check = ["micro avg", "macro avg", "weighted avg", "accuracy"]
-
-    inds = np.intersect1d(report.index.tolist(), inds_to_check).tolist()
-    cols = np.intersect1d(report.columns.tolist(), cols_to_check).tolist()
-    for col in cols:
-        for ind in inds:
-            key = f"{col}_{ind}".replace(" ", "-")
-            if "accuracy" in key:
-                key = "accuracy"
-            value = report.loc[ind][col]
-            if np.isnan(value):
-                continue
-            history[key] = value
-
-if __name__ == "__main__":
-    pass
-    y_true = [1, 2, 3, 4]
-    y_pred = [2, 2, 3, 3]
-    labels = [1, 2, 3, 4, 5]
-    
-    fig, csv = compute_confusion_matrix_fig_and_csv(y_true, y_pred, labels, True)
-    report = compute_classification_report_csv(y_true, y_pred, labels)
-    
-    
-    history = {}
-    update_epoch_history_from_classification_report(history, report)
-    print(history)

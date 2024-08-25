@@ -3,3 +3,5 @@
 *.pth
 *.egg-info
 /build
+get_from_llnl.sh
+put_to_llnl.sh

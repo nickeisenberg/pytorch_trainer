@@ -5,16 +5,26 @@ import csv
 from torch import Tensor
 
 from .base import Logger as _Logger
+from ...metrics import (
+    compute_confusion_matrix_fig_and_csv,
+    compute_classification_report_csv, 
+    update_history_from_classification_report
+)
 from ..utils import rank_zero_only
 from ...trainer import Trainer
 
 
 class ClassificationLogger(_Logger):
     """The logger with functionality suited for classification models"""
-    def __init__(self, log_root: str = "logs", priority=0):
+    def __init__(self, labels: list[int], log_root: str = "logs", 
+                 metrics_root: str = "metrics", 
+                 priority=0):
         super().__init__(priority=priority)
+        
+        self.labels = labels
 
         self.log_root = log_root 
+        self.metrics_root = metrics_root 
 
         self.batch_history = defaultdict(float)
         self.epoch_history = defaultdict(list)
@@ -22,49 +32,93 @@ class ClassificationLogger(_Logger):
         self.epoch_predictions = []
         self.epoch_targets = []
 
+
     @rank_zero_only
     def log_item(self, name: str, value: float):
         self.batch_history[name] = value
         self.epoch_history[name].append(value)
+
 
     @rank_zero_only
     def log_targs_and_preds(self, targets: Tensor, predictions: Tensor):
         self.epoch_targets += targets.tolist()
         self.epoch_predictions += predictions.tolist()
     
+
     @rank_zero_only
     def on_fit_start(self, trainer: Trainer):
-        self.log_root = os.path.join(trainer.save_root, self.log_root)
-        if not os.path.isdir(self.log_root):
-            os.makedirs(self.log_root)
 
+        self.log_root = os.path.join(trainer.save_root, self.log_root)
+
+        self.metrics_root = os.path.join(trainer.save_root, self.metrics_root)
+        self.conf_mat_root = os.path.join(self.metrics_root, "conf_mat")
+        self.report_root = os.path.join(self.metrics_root, "report")
+        
+        for dir in [self.log_root, self.conf_mat_root, self.report_root]:
+            if not os.path.isdir(dir):
+                os.makedirs(dir)
+        
+        # set the paths to the logs
         self.train_log_path = os.path.join(
             self.log_root, f"train.csv"
         )
+        self.train_headers_written = False
+
         self.validation_log_path = os.path.join(
             self.log_root, f"validation.csv"
         )
-        self.train_headers_written = False
         self.validation_headers_written = False
 
-    @rank_zero_only
-    def before_train_epoch_pass(self, trainer: Trainer):
-        pass
+        self.train_item_log_path = os.path.join(
+            self.log_root, f"train_item.csv"
+        )
+        self.train_item_headers_written = False
+
+        self.validation_item_log_path = os.path.join(
+            self.log_root, f"validation_item.csv"
+        )
+        self.validation_item_headers_written = False
+
 
     @rank_zero_only
     def after_train_batch_pass(self, trainer: Trainer):
-        with open(self.train_log_path, "a", newline="") as csvf:
-            writer = csv.DictWriter(csvf, fieldnames=self.batch_history.keys())
-            if not self.train_headers_written:
-                _ = writer.writeheader()
-                self.train_headers_written = True
-            _ = writer.writerow(self.batch_history)
-        self.batch_history = defaultdict(float)
+        self.batch_history, self.train_item_headers_written = write_to_item_log(
+            self.train_log_path, self.batch_history, self.train_item_headers_written
+        )
+
 
     @rank_zero_only
     def after_train_epoch_pass(self, trainer: Trainer):
         for key in self.epoch_history:
-            self.train_log[key].append(round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4))
+            self.train_log[key].append(
+                round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4)
+            )
+
+        if self.epoch_targets and self.epoch_predictions:
+            cm_fig, cm_csv = compute_confusion_matrix_fig_and_csv(
+                y_true=self.epoch_targets, y_pred=self.epoch_predictions,
+                labels=self.labels, normalize=True
+            )
+
+            save_to = os.path.join(
+                self.conf_mat_root, 
+                f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.png"
+            )
+            cm_fig.savefig(save_to)
+
+            save_to = os.path.join(
+                self.report_root, 
+                f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.csv"
+            )
+            cm_csv.to_csv(save_to)
+
+            report = compute_classification_report_csv(
+                y_true=self.epoch_targets, y_pred=self.epoch_predictions,
+                labels=self.labels
+            )
+            update_history_from_classification_report(self.train_log, report)
+        
+        self.epoch_targets, self.epoch_predictions = [], []
         self.epoch_history = defaultdict(list)
 
     @rank_zero_only
@@ -86,3 +140,24 @@ class ClassificationLogger(_Logger):
         for key in self.epoch_history:
             self.validation_log[key].append(round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4))
         self.epoch_history = defaultdict(list)
+
+
+
+def write_to_log(path: str, history: dict, write_headers: bool):
+    with open(path, "a", newline="") as csvf:
+        writer = csv.DictWriter(csvf, fieldnames=history.keys())
+        if not write_headers:
+            _ = writer.writeheader()
+            write_headers = True
+        _ = writer.writerow(history)
+    history = defaultdict(float)
+    return history, write_headers
+
+
+
+
+
+
+
+
+

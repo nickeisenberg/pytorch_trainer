@@ -32,6 +32,9 @@ class SaveBestCheckpoint(Callback):
             self.best_validation_metric = -1e6
         else:
             self.best_validation_metric = 1e6
+
+        self.last_saved_train_path = None
+        self.last_saved_val_path = None
     
     @rank_zero_only
     def on_fit_start(self, trainer: Trainer):
@@ -43,49 +46,47 @@ class SaveBestCheckpoint(Callback):
     def after_train_epoch_pass(self, trainer: Trainer):
         last_epoch_val = trainer.logger_callback.train_log[self.train_metric][-1]
 
-        if self.train_metric_desire == "decrease" and last_epoch_val <= self.best_train_metric:
+        if (self.train_metric_desire == "decrease" and last_epoch_val <= self.best_train_metric) or \
+            (self.train_metric_desire == "increase" and last_epoch_val >= self.best_train_metric):
+
             self.best_train_metric = last_epoch_val
-            torch.save(
-                self._get_module_state_dict(trainer),
-                os.path.join(
-                    self.state_dict_root, 
-                    f"train_ep_{trainer.variables.current_epoch}.pth"
-                )
+
+            if self.last_saved_train_path is not None: 
+                os.remove(self.last_saved_train_path)
+
+            self.last_saved_train_path = os.path.join(
+                self.state_dict_root, 
+                f"train_ep_{trainer.variables.current_epoch}.pth"
             )
 
-        elif self.train_metric_desire == "increase" and last_epoch_val >= self.best_train_metric:
-            self.best_train_metric = last_epoch_val
             torch.save(
                 self._get_module_state_dict(trainer),
-                os.path.join(
-                    self.state_dict_root, 
-                    f"train_ep_{trainer.variables.current_epoch}.pth"
-                )
+                self.last_saved_train_path
             )
+
 
     @rank_zero_only
     def after_validation_epoch_pass(self, trainer: Trainer):
         last_epoch_val = trainer.logger_callback.validation_log[self.validation_metric][-1]
 
-        if self.validation_metric_desire == "decrease" and last_epoch_val <= self.best_validation_metric:
+        if (self.validation_metric_desire == "decrease" and last_epoch_val <= self.best_validation_metric) or \
+            (self.validation_metric_desire == "increase" and last_epoch_val >= self.best_validation_metric):
+
             self.best_validation_metric = last_epoch_val
-            torch.save(
-                self._get_module_state_dict(trainer),
-                os.path.join(
-                    self.state_dict_root, 
-                    f"validation_ep_{trainer.variables.current_epoch}.pth"
-                )
+
+            if self.last_saved_val_path is not None: 
+                os.remove(self.last_saved_val_path)
+
+            self.last_saved_val_path = os.path.join(
+                self.state_dict_root, 
+                f"validation_ep_{trainer.variables.current_epoch}.pth"
             )
 
-        elif self.validation_metric_desire == "increase" and last_epoch_val >= self.best_validation_metric:
-            self.best_validation_metric = last_epoch_val
             torch.save(
                 self._get_module_state_dict(trainer),
-                os.path.join(
-                    self.state_dict_root, 
-                    f"validation_ep_{trainer.variables.current_epoch}.pth"
-                )
+                self.last_saved_val_path
             )
+
     
     @staticmethod
     def _get_module_state_dict(trainer: Trainer):

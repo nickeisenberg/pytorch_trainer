@@ -26,6 +26,11 @@ class Callback:
             "after_validation_batch_pass": _callback_not_implemented,
             "after_validation_epoch_pass": _callback_not_implemented,
             "on_fit_end": _callback_not_implemented,
+            "on_evaluation_start": _callback_not_implemented,
+            "before_evaluation_epoch_pass": _callback_not_implemented,
+            "before_evaluation_batch_pass": _callback_not_implemented,
+            "after_evaluation_batch_pass": _callback_not_implemented,
+            "after_evaluation_epoch_pass": _callback_not_implemented,
         }
 
         self.register_all_actions()

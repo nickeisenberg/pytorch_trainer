@@ -30,14 +30,14 @@ def compute_confusion_matrix_fig_and_csv(y_true, y_pred, labels, normalize: bool
     cm = confusion_matrix(y_true=y_true, y_pred=y_pred, labels=labels)
     cm_df = pd.DataFrame(cm, index=labels, columns=labels)
 
+    acc = float(round(np.einsum("ii->i", cm).sum() / cm.sum() * 100, 2))
+
     if normalize:
         with np.errstate(all='ignore'):
             cm = cm.astype('float') / cm.sum(axis=1, keepdims=True)
             cm = np.nan_to_num(cm)  # Replace NaNs with 0
 
     cm_df = pd.DataFrame(cm, index=labels, columns=labels)
-
-    acc = float(round(np.einsum("ii->i", cm).sum() / cm.sum() * 100, 2))
 
     fig_title = 'Confusion Matrix\n'
     fig_title += f"Accuracy: {acc}" 

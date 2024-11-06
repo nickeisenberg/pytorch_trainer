@@ -10,13 +10,16 @@ def increment_save_root(save_root: str):
         save_root = save_root[:-len(os.sep)]
 
     if os.sep not in save_root:
-        save_root = "./" + save_root
+        save_root = f".{os.sep}" + save_root
 
     if save_root.startswith("~"):
         save_root = os.path.expanduser(save_root)
 
     base_dir = save_root.split(os.sep)[-1]
-    root_dir = save_root.split(base_dir)[0]
+
+    # root_dir = save_root.split(base_dir)[0]
+    # this was a fix for windows paths.
+    root_dir = os.sep.join(save_root.split(os.sep)[:-1])
     
     is_dir = os.path.isdir(save_root)
     while is_dir:
@@ -67,6 +70,7 @@ class Variables:
         self._train_loader = None
         self._num_epochs = None
         self._validation_loader = None
+        self._evaluation_loader = None
     
     @property
     def current_pass(self):
@@ -75,7 +79,7 @@ class Variables:
     @current_pass.setter
     def current_pass(self, current_pass: str):
         if isinstance(current_pass, str):
-            if current_pass in ["train", "validation", "test"]:
+            if current_pass in ["train", "validation", "test", "evaluation"]:
                 self._current_pass = current_pass
         else:
             raise Exception("ERROR: current_pass must be train, val or test.")
@@ -122,7 +126,18 @@ class Variables:
         if isinstance(validation_loader, Iterable):
             self._validation_loader = validation_loader 
         else:
-            raise Exception("ERROR: validation_loader must be an Iterable")
+            raise Exception("ERROR: evaluation_loader must be an Iterable")
+
+    @property
+    def evaluation_loader(self):
+        return self._evaluation_loader
+
+    @evaluation_loader.setter
+    def evaluation_loader(self, evaluation_loader: Iterable):
+        if isinstance(evaluation_loader, Iterable):
+            self._evaluation_loader = evaluation_loader 
+        else:
+            raise Exception("ERROR: evaluation_loader must be an Iterable")
 
     @property
     def num_epochs(self):

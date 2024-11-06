@@ -77,3 +77,25 @@ class ProgressBar(DataIterator):
                     **self.postfix
                 )
             self.postfix = {}
+
+
+    def before_evaluation_epoch_pass(self, trainer: Trainer):
+        if trainer.rank == 0:
+            self.evaluation_data_iterator = tqdm(
+                trainer.variables.evaluation_loader, leave=True
+            )
+            self.evaluation_data_iterator.set_postfix()
+        else:
+            self.evaluation_data_iterator = tqdm(
+                trainer.variables.evaluation_loader, disable=True
+            )
+
+    @rank_zero_only
+    def after_evaluation_batch_pass(self, trainer: Trainer) -> None:
+        if self.evaluation_data_iterator is not None:
+            if trainer.variables.current_batch_idx % self.log_to_bar_every == 0:
+                append_tqdm_postfix(
+                    cast(tqdm, self.evaluation_data_iterator), 
+                    **self.postfix
+                )
+            self.postfix = {}

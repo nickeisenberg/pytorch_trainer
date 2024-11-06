@@ -10,6 +10,7 @@ class Logger(Callback, ABC):
         super().__init__(priority)
         self._train_log = defaultdict(list[float])
         self._validation_log = defaultdict(list[float])
+        self._evaluation_log = defaultdict(list[float])
 
     @property
     def train_log(self):
@@ -18,3 +19,7 @@ class Logger(Callback, ABC):
     @property
     def validation_log(self):
         return self._validation_log
+
+    @property
+    def evaluation_log(self):
+        return self._evaluation_log

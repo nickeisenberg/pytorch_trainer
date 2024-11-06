@@ -34,7 +34,6 @@ class Trainer:
         self.local_rank = int(os.getenv("LOCAL_RANK", 0))
 
         self.variables = Variables()
-        
         self._callbacks: dict[str, list[Callable]] = {
             "on_fit_start": [],
             "before_train_epoch_pass": [],
@@ -46,6 +45,11 @@ class Trainer:
             "after_validation_batch_pass": [],
             "after_validation_epoch_pass": [],
             "on_fit_end": [],
+            "on_evaluation_start": [],
+            "before_evaluation_epoch_pass": [],
+            "before_evaluation_batch_pass": [],
+            "after_evaluation_batch_pass": [],
+            "after_evaluation_epoch_pass": [],
         }
         
         # special callbacks
@@ -103,6 +107,34 @@ class Trainer:
 
         self.call("on_fit_end", self)
 
+    def evaluate(self, 
+                 loader: DataLoader,
+                 data_devicer: Callable | None = None):
+        
+        """
+        Work in progress.
+        """
+
+        self.variables.evaluation_loader = loader
+
+        # self.variables.evaluation_loader = loader 
+        self.variables.current_pass = "evaluation"
+        print("---------")
+        print(self.variables.current_pass)
+        print("---------")
+
+        self.call("on_evaluation_start", self)
+
+        evaluate_batch_pass = self._get_batch_pass()
+
+        self.call("before_evaluation_epoch_pass", self)
+        self.epoch_pass(
+            data_iterator=self.data_iterator_callback.evaluation_data_iterator,
+            data_devicer=data_devicer,
+            batch_pass=evaluate_batch_pass
+        )
+        self.call("after_evaluation_epoch_pass", self)
+
     def epoch_pass(self, 
                    data_iterator: Iterable, 
                    data_devicer: Callable | None, 
@@ -156,6 +188,7 @@ class Trainer:
                 self.module, f"{self.variables.current_pass}_batch_pass"
             )
         else:
+            print(f"{self.variables.current_pass}_batch_pass")
             batch_pass = getattr(
                 self.module.module, f"{self.variables.current_pass}_batch_pass"
             )

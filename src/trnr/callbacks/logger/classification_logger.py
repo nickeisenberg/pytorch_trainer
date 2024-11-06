@@ -88,9 +88,9 @@ class ClassificationLogger(_Logger):
     @rank_zero_only
     def after_train_batch_pass(self, trainer: Trainer):
         write_to_log(
-            self.train_all_log_path, 
-            self.batch_history, 
-            not self.train_all_headers_written
+            path=self.train_all_log_path, 
+            history=self.batch_history, 
+            write_headers=not self.train_all_headers_written
         )
         self.train_all_headers_written = True
         self.batch_history = defaultdict(float)
@@ -190,6 +190,79 @@ class ClassificationLogger(_Logger):
         self.epoch_history = defaultdict(list)
         self.epoch_targets, self.epoch_predictions = torch.tensor([]), torch.tensor([])
 
+    @rank_zero_only
+    def on_evaluation_start(self, trainer: Trainer):
+
+        self.log_root = os.path.join(trainer.save_root, self.log_root)
+
+        self.metrics_root = os.path.join(trainer.save_root, self.metrics_root)
+        self.conf_mat_root = os.path.join(self.metrics_root, "conf_mat")
+        self.report_root = os.path.join(self.metrics_root, "report")
+        
+        for dir in [self.log_root, self.conf_mat_root, self.report_root]:
+            if not os.path.isdir(dir):
+                os.makedirs(dir)
+        
+        self.evaluation_log_path = os.path.join(
+            self.log_root, f"evaluation.csv"
+        )
+        self.evaluation_headers_written = False
+
+        self.evaluation_all_log_path = os.path.join(
+            self.log_root, f"evaluation_all.csv"
+        )
+        self.evaluation_all_headers_written = False
+
+    @rank_zero_only
+    def after_evaluation_batch_pass(self, trainer: Trainer):
+        write_to_log(
+            path=self.evaluation_all_log_path, 
+            history=self.batch_history, 
+            write_headers=not self.evaluation_all_headers_written
+        )
+        self.evaluation_all_headers_written = True
+        self.batch_history = defaultdict(float)
+
+    @rank_zero_only
+    def after_evaluation_epoch_pass(self, trainer: Trainer):
+        for key in self.epoch_history:
+            self.evaluation_log[key].append(
+                round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4)
+            )
+
+        if len(self.epoch_targets) > 0:
+            cm_fig, cm_csv = compute_confusion_matrix_fig_and_csv(
+                y_true=self.epoch_targets, y_pred=self.epoch_predictions,
+                labels=self.labels, normalize=True
+            )
+
+            save_to = os.path.join(
+                self.conf_mat_root, 
+                f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.png"
+            )
+            cm_fig.savefig(save_to)
+
+            save_to = os.path.join(
+                self.conf_mat_root, 
+                f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.csv"
+            )
+            cm_csv.to_csv(save_to)
+
+            save_to = os.path.join(
+                self.report_root, 
+                f"{trainer.variables.current_pass}_ep{trainer.variables.current_epoch}.csv"
+            )
+            report = compute_classification_report_csv(
+                y_true=self.epoch_targets, y_pred=self.epoch_predictions,
+                labels=self.labels
+            )
+            report.to_csv(save_to)
+            update_log_from_classification_report(self.evaluation_log, report)
+
+        _ = pd.DataFrame(self.evaluation_log).to_csv(self.evaluation_log_path)
+        
+        self.epoch_history = defaultdict(list)
+        self.epoch_targets, self.epoch_predictions = torch.tensor([]), torch.tensor([])
 
 def write_to_log(path: str, history: dict, write_headers: bool):
     with open(path, "a", newline="") as csvf:
@@ -197,7 +270,6 @@ def write_to_log(path: str, history: dict, write_headers: bool):
         if write_headers:
             _ = writer.writeheader()
         _ = writer.writerow(history)
-
 
 def update_log_from_classification_report(history: dict[str, list[float]], 
                                           report: pd.DataFrame

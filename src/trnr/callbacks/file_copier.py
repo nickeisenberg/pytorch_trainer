@@ -21,3 +21,12 @@ class FileCopier(Callback):
                     src=f,
                     dst=os.path.join(trainer.save_root, base_name)
                 )
+
+    def on_evaluation_start(self, trainer: Trainer):
+        for f in self.files_to_copy:
+            if os.path.isfile(f):
+                base_name = os.path.basename(f)
+                shutil.copyfile(
+                    src=f,
+                    dst=os.path.join(trainer.save_root, base_name)
+                )

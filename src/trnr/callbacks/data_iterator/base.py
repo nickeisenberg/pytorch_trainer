@@ -11,6 +11,7 @@ class DataIterator(Callback, ABC):
         super().__init__()
         self._train_data_iterator = None
         self._validation_data_iterator = None
+        self._evaluation_data_iterator = None
     
     @property
     def train_data_iterator(self) -> Iterable:
@@ -37,3 +38,16 @@ class DataIterator(Callback, ABC):
             self._validation_data_iterator = validation_data_iterator 
         else:
             raise Exception("ERROR: validation_data_iterator must be a Iterable")
+
+    @property
+    def evaluation_data_iterator(self) -> Iterable:
+        if self._evaluation_data_iterator is None:
+            raise Exception("ERROR: evaluation_data_iterator called before set")
+        return self._evaluation_data_iterator
+
+    @evaluation_data_iterator.setter
+    def evaluation_data_iterator(self, evaluation_data_iterator: Iterable):
+        if isinstance(evaluation_data_iterator, Iterable):
+            self._evaluation_data_iterator = evaluation_data_iterator 
+        else:
+            raise Exception("ERROR: evaluation_data_iterator must be a Iterable")

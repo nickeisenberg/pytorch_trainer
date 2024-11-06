@@ -6,5 +6,5 @@ class BasicLRScheduler(Callback):
         super().__init__()
         self.scheduler = scheduler
 
-    def after_train_epoch_pass(self, *_):
+    def after_train_epoch_pass(self, *_, **__):
         self.scheduler.step()

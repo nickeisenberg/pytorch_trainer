@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 
 import torch
 import torch.nn as nn
@@ -16,7 +15,7 @@ from src.trnr.callbacks.save_best_checkpoint import SaveBestCheckpoint
 from src.trnr.callbacks.basic_lr_scheduler import BasicLRScheduler 
 from src.trnr.callbacks.logger.classification_logger import ClassificationLogger
 
-class DummyCallback(Callback):
+class CheckLR(Callback):
     def __init__(self):
         super().__init__()
 
@@ -126,16 +125,16 @@ def loaders():
 def get_trainer():
     progress_bar = ProgressBar(log_to_bar_every=15)
     logger = ClassificationLogger(labels=list(range(10)))
-    dummy = DummyCallback()
+    check_lr = CheckLR()
     save_best_checkpoint = SaveBestCheckpoint("loss", "decrease", "loss", "decrease")
     module = Module(progress_bar, logger)
     scheduler = BasicLRScheduler(ExponentialLR(module.optim, gamma=.8))
     trainer = Trainer(
-        module, 
+        module=module, 
         device="gpu",
         ddp=False,
         callbacks=[
-            progress_bar, logger, save_best_checkpoint, scheduler
+            progress_bar, logger, save_best_checkpoint, scheduler, check_lr
         ],
         save_root="examples/mnist/mnist_classifier"
     )

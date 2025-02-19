@@ -264,12 +264,14 @@ class ClassificationLogger(_Logger):
         self.epoch_history = defaultdict(list)
         self.epoch_targets, self.epoch_predictions = torch.tensor([]), torch.tensor([])
 
+
 def write_to_log(path: str, history: dict, write_headers: bool):
     with open(path, "a", newline="") as csvf:
         writer = csv.DictWriter(csvf, fieldnames=history.keys())
         if write_headers:
             _ = writer.writeheader()
         _ = writer.writerow(history)
+
 
 def update_log_from_classification_report(history: dict[str, list[float]], 
                                           report: pd.DataFrame

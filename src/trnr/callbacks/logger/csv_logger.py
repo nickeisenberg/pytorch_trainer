@@ -34,15 +34,16 @@ class CSVLogger(_Logger):
         self.train_log_path = os.path.join(
             self.log_root, f"train.csv"
         )
+        self.train_headers_written = False
+
         self.validation_log_path = os.path.join(
             self.log_root, f"validation.csv"
         )
-        self.train_headers_written = False
         self.validation_headers_written = False
 
-    @rank_zero_only
-    def before_train_epoch_pass(self, trainer: Trainer):
-        pass
+    # @rank_zero_only
+    # def before_train_epoch_pass(self, trainer: Trainer):
+    #     pass
 
     @rank_zero_only
     def after_train_batch_pass(self, trainer: Trainer):
@@ -57,12 +58,17 @@ class CSVLogger(_Logger):
     @rank_zero_only
     def after_train_epoch_pass(self, trainer: Trainer):
         for key in self.epoch_history:
-            self.train_log[key].append(round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4))
+            self.train_log[key].append(
+                round(
+                    sum(self.epoch_history[key]) / len(self.epoch_history[key]),
+                    4
+                )
+            )
         self.epoch_history = defaultdict(list)
 
-    @rank_zero_only
-    def before_validation_epoch_pass(self, trainer: Trainer):
-        self._headers_written = False
+    # @rank_zero_only
+    # def before_validation_epoch_pass(self, trainer: Trainer):
+    #     self._headers_written = False
     
     @rank_zero_only
     def after_validation_batch_pass(self, trainer: Trainer):
@@ -77,5 +83,10 @@ class CSVLogger(_Logger):
     @rank_zero_only
     def after_validation_epoch_pass(self, trainer: Trainer):
         for key in self.epoch_history:
-            self.validation_log[key].append(round(sum(self.epoch_history[key]) / len(self.epoch_history[key]), 4))
+            self.validation_log[key].append(
+                round(
+                    sum(self.epoch_history[key]) / len(self.epoch_history[key]), 
+                    4
+                )
+            )
         self.epoch_history = defaultdict(list)

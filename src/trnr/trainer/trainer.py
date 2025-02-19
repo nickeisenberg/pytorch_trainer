@@ -135,6 +135,10 @@ class Trainer:
         )
         self.call("after_evaluation_epoch_pass", self)
 
+
+    def predict(self, *_):
+        raise Exception("ERROR: predict is not implemented yet")
+
     def epoch_pass(self, 
                    data_iterator: Iterable, 
                    data_devicer: Callable | None, 
@@ -151,9 +155,6 @@ class Trainer:
             batch_pass(data, batch_idx)
             self.call(f"after_{self.variables.current_pass}_batch_pass", self)
 
-    def predict(self, *_):
-        raise Exception("ERROR: predict is not implemented yet")
-
     def call(self, where_at: str, *args, **kwargs):
         for callback in self.callbacks[where_at]:
             if callback:
@@ -162,12 +163,14 @@ class Trainer:
     def _register_callbacks(self, callbacks: list[Callback]):
         set_priorites = []
 
-        for i, callback in enumerate(callbacks):
+        for _, callback in enumerate(callbacks):
             if isinstance(callback.priority, int):
                 if not callback.priority in set_priorites:
                     set_priorites.append(callback.priority)
                 else:
-                    raise Exception("ERROR: Multiple callbacks have been set with the same priority.")
+                    raise Exception(
+                        "ERROR: Multiple callbacks have been set with the same priority."
+                    )
 
             for k, v in callback.callbacks.items():
                 if isinstance(callback.priority, int):
